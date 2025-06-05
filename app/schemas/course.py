@@ -8,7 +8,7 @@ class CourseBase(BaseModel):
 class CourseCreate(CourseBase):
     pass
 
-class CourseInDB(CourseBase):
+class CourseOut(CourseBase):
     id: int
 
     class Config:
