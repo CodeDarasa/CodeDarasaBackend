@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.api.deps import get_current_user
 from app.schemas.course import CourseCreate, CourseOut
+from app.db.models.course import Course
 from app.crud.course import create_course, get_courses
 from app.db.session import SessionLocal
 
@@ -37,8 +38,17 @@ def create_new_course(
     return create_course(db, course)
 
 @router.get("/", response_model=List[CourseOut])
-def list_courses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return get_courses(db, skip=skip, limit=limit)
+def list_courses(
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Page size"),
+    search: Optional[str] = Query(None, description="Search by title"),
+):
+    query = db.query(Course)
+    if search:
+        query = query.filter(Course.title.ilike(f"%{search}%"))
+    courses = query.offset((page - 1) * page_size).limit(page_size).all()
+    return courses
 
 @router.get("/{course_id}", response_model=CourseOut)
 def get_course(course_id: int, db: Session = Depends(get_db)):

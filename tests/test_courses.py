@@ -39,10 +39,32 @@ def test_create_course():
     assert data["youtube_url"] == "https://youtube.com/test1"
 
 def test_get_courses():
-    response = client.get("/api/courses/")
+    # Create some courses for testing
+    token = get_token()
+    titles = [f"Paginated Course {i}" for i in range(1, 6)]
+    for title in titles:
+        client.post(
+            "/api/courses/",
+            json={
+                "title": title,
+                "description": f"Description for {title}",
+                "youtube_url": f"https://youtube.com/{title.replace(' ', '').lower()}"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+
+    # Test default pagination (should return up to 10)
+    response = client.get("/api/courses/?page=1&page_size=2")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
+    assert len(data) == 2
+
+    # Test search filter
+    response = client.get("/api/courses/?search=Paginated")
+    assert response.status_code == 200
+    data = response.json()
+    assert all("Paginated" in course["title"] for course in data)
 
 def test_get_single_course():
     token = get_token()
