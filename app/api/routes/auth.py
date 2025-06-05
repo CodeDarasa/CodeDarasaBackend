@@ -4,6 +4,7 @@ from app.schemas.user import UserCreate, UserOut
 from app.crud.user import create_user, get_user_by_username, verify_password
 from app.db.session import SessionLocal
 from app.core.security import create_access_token
+from app.api.deps import get_current_user
 
 router = APIRouter()
 

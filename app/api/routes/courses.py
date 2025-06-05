@@ -35,7 +35,18 @@ def create_new_course(
             status_code=400,
             detail="Course with this title and YouTube URL already exists."
         )
-    return create_course(db, course)
+        
+    db_course = Course(
+        title=course.title,
+        description=course.description,
+        youtube_url=course.youtube_url,
+        category_id=course.category_id,
+        creator_id=current_user.id
+    )
+    db.add(db_course)
+    db.commit()
+    db.refresh(db_course)
+    return db_course
 
 @router.get("/", response_model=List[CourseOut])
 def list_courses(

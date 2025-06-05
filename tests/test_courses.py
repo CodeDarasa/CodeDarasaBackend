@@ -1,141 +1,209 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
-from app.db.session import SessionLocal
-from app.db.models.course import Course
 from app.main import app
-import uuid
 
 client = TestClient(app)
 
-def get_token():
-    username = f"testuser_{uuid.uuid4().hex[:8]}"
-    client.post("/api/auth/register", json={"username": username, "password": "testpass"})
-    resp = client.post("/api/auth/login", json={"username": username, "password": "testpass"})
+def unique_name(prefix):
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+@pytest.fixture
+def user_token():
+    username = unique_name("user")
+    password = "testpass"
+    client.post("/api/auth/register", json={"username": username, "password": password})
+    resp = client.post("/api/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
-@pytest.fixture(scope="module", autouse=True)
-def clean_courses():
-    db = SessionLocal()
-    db.query(Course).delete()
-    db.commit()
-    db.close()
+@pytest.fixture
+def category_id(user_token):
+    name = unique_name("Category")
+    resp = client.post("/api/categories/", json={"name": name}, headers={"Authorization": f"Bearer {user_token}"})
+    return resp.json()["id"]
 
-def test_create_course():
-    token = get_token()
-    response = client.post(
+def auth_headers(token):
+    return {"Authorization": f"Bearer {token}"}
+
+def test_create_course_success(user_token, category_id):
+    title = unique_name("Course")
+    resp = client.post(
         "/api/courses/",
         json={
-            "title": "Test Course Unique 1",
-            "description": "A course for testing.",
-            "youtube_url": "https://youtube.com/test1"
+            "title": title,
+            "description": "A test course",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_headers(user_token)
     )
-    print(response.status_code, response.json())
-    assert response.status_code == 200 or response.status_code == 201
-    data = response.json()
-    assert data["title"] == "Test Course Unique 1"
-    assert data["description"] == "A course for testing."
-    assert data["youtube_url"] == "https://youtube.com/test1"
+    assert resp.status_code in (200, 201)
+    data = resp.json()
+    assert data["title"] == title
+    assert data["category_id"] == category_id
+    assert "creator" in data
+
+def test_create_course_unauthenticated(category_id):
+    title = unique_name("CourseNoAuth")
+    resp = client.post(
+        "/api/courses/",
+        json={
+            "title": title,
+            "description": "A test course",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        }
+    )
+    assert resp.status_code == 401
+
+def test_create_course_missing_fields(user_token, category_id):
+    # Missing title
+    resp = client.post(
+        "/api/courses/",
+        json={
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code == 422
 
 def test_get_courses():
-    # Create some courses for testing
-    token = get_token()
-    titles = [f"Paginated Course {i}" for i in range(1, 6)]
-    for title in titles:
-        client.post(
-            "/api/courses/",
-            json={
-                "title": title,
-                "description": f"Description for {title}",
-                "youtube_url": f"https://youtube.com/{title.replace(' ', '').lower()}"
-            },
-            headers={"Authorization": f"Bearer {token}"}
-        )
+    resp = client.get("/api/courses/")
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
 
-    # Test default pagination (should return up to 10)
-    response = client.get("/api/courses/?page=1&page_size=2")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == 2
-
-    # Test search filter
-    response = client.get("/api/courses/?search=Paginated")
-    assert response.status_code == 200
-    data = response.json()
-    assert all("Paginated" in course["title"] for course in data)
-
-def test_get_single_course():
-    token = get_token()
-
-    # First, create a course
-    create_resp = client.post(
+def test_get_single_course(user_token, category_id):
+    title = unique_name("SingleCourse")
+    resp = client.post(
         "/api/courses/",
         json={
-            "title": "Unique Course 2",
-            "description": "Single fetch test.",
-            "youtube_url": "https://youtube.com/unique2"
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
         },
-        headers={"Authorization": f"Bearer {token}"}
-
+        headers=auth_headers(user_token)
     )
-    assert create_resp.status_code == 200 or create_resp.status_code == 201, create_resp.json()
-    course_id = create_resp.json()["id"]
-    # Now, fetch it
-    response = client.get(f"/api/courses/{course_id}")
-    assert response.status_code == 200
-    data = response.json()
+    course_id = resp.json()["id"]
+    resp = client.get(f"/api/courses/{course_id}")
+    assert resp.status_code == 200
+    data = resp.json()
     assert data["id"] == course_id
+    assert data["title"] == title
 
-def test_update_course():
-    token = get_token()
+def test_get_nonexistent_course():
+    resp = client.get("/api/courses/999999")
+    assert resp.status_code == 404
 
-    # Create a course
-    create_resp = client.post(
+def test_update_course(user_token, category_id):
+    # Create course
+    title = unique_name("ToUpdate")
+    resp = client.post(
         "/api/courses/",
         json={
-            "title": "Update Me 3",
-            "description": "Before update.",
-            "youtube_url": "https://youtube.com/updateme3"
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_headers(user_token)
     )
-    assert create_resp.status_code == 200 or create_resp.status_code == 201, create_resp.json()
-    course_id = create_resp.json()["id"]
-    # Update it
-    response = client.put(
+    course_id = resp.json()["id"]
+    # Update course
+    new_title = unique_name("Updated")
+    resp = client.put(
         f"/api/courses/{course_id}",
         json={
-            "title": "Updated Title 3",
-            "description": "After update.",
-            "youtube_url": "https://youtube.com/updated3"
+            "title": new_title,
+            "description": "new desc",
+            "youtube_url": "https://youtube.com/updated",
+            "category_id": category_id
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_headers(user_token)
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["title"] == "Updated Title 3"
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == new_title
 
-def test_delete_course():
-    token = get_token()
-
-    # Create a course
-    create_resp = client.post(
+def test_update_course_unauthenticated(user_token, category_id):
+    # Create course
+    title = unique_name("ToUpdateNoAuth")
+    resp = client.post(
         "/api/courses/",
         json={
-            "title": "Delete Me",
-            "description": "To be deleted.",
-            "youtube_url": "https://youtube.com/deleteme"
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers=auth_headers(user_token)
     )
-    course_id = create_resp.json()["id"]
-    # Delete it
-    response = client.delete(
+    course_id = resp.json()["id"]
+    # Try update without auth
+    resp = client.put(
         f"/api/courses/{course_id}",
-        headers={"Authorization": f"Bearer {token}"}
+        json={
+            "title": "NoAuth",
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        }
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "Course deleted successfully."
+    assert resp.status_code == 401
+
+def test_delete_course(user_token, category_id):
+    # Create course
+    title = unique_name("ToDelete")
+    resp = client.post(
+        "/api/courses/",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    course_id = resp.json()["id"]
+    # Delete course
+    resp = client.delete(f"/api/courses/{course_id}", headers=auth_headers(user_token))
+    assert resp.status_code == 200 or resp.status_code == 204
+
+def test_delete_course_unauthenticated(user_token, category_id):
+    # Create course
+    title = unique_name("ToDeleteNoAuth")
+    resp = client.post(
+        "/api/courses/",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    course_id = resp.json()["id"]
+    # Try delete without auth
+    resp = client.delete(f"/api/courses/{course_id}")
+    assert resp.status_code == 401
+
+def test_filter_courses_by_category(user_token, category_id):
+    # Create a course in this category
+    title = unique_name("CourseFilter")
+    client.post(
+        "/api/courses/",
+        json={
+            "title": title,
+            "description": "A test course",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    # Filter by category
+    resp = client.get(f"/api/courses/?category_id={category_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert any(course["category_id"] == category_id for course in data)

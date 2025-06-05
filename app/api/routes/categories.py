@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.db.models.category import Category
 from app.schemas.category import CategoryCreate, CategoryOut
+from app.api.deps import get_current_user
 from typing import List
 
 router = APIRouter()
@@ -15,7 +16,11 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=CategoryOut)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(
+    category: CategoryCreate, 
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+    ):
     existing = db.query(Category).filter(Category.name == category.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Category with this name already exists.")
@@ -37,7 +42,12 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
     return category
 
 @router.put("/{category_id}", response_model=CategoryOut)
-def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
+def update_category(
+    category_id: int, 
+    category: CategoryCreate, 
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     db_category = db.query(Category).filter(Category.id == category_id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -49,3 +59,16 @@ def update_category(category_id: int, category: CategoryCreate, db: Session = De
     db.commit()
     db.refresh(db_category)
     return db_category
+
+@router.delete("/{category_id}")
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)  # <-- Require authentication
+):
+    db_category = db.query(Category).filter(Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    db.delete(db_category)
+    db.commit()
+    return {"detail": "Category deleted"}

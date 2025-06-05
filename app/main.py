@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes import auth, courses, categories
+from app.api.routes import auth, courses, categories, users
 
 app = FastAPI(title="Code Darasa Backend")
 
@@ -15,10 +15,14 @@ app.include_router(
     tags=["auth"]
 )
 
-from app.api.routes import categories
-
 app.include_router(
     categories.router,
     prefix="/api/categories",
     tags=["categories"]
+)
+
+app.include_router(
+    users.router,
+    prefix="/api/users",
+    tags=["users"]
 )
