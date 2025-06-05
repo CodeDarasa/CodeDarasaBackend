@@ -71,13 +71,16 @@ def update_course(
     db.commit()
     db.refresh(course)
 
-    return course
+    return {
+        "message": "Course updated successfully.",
+        "course": course
+    }
 
-@router.delete("/{course_id}", status_code=204)
+@router.delete("/{course_id}", status_code=200)
 def delete_course(course_id: int, db: Session = Depends(get_db)):
     course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     db.delete(course)
     db.commit()
-    return
+    return {"message": "Course deleted successfully."}
