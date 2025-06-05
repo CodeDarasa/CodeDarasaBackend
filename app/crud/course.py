@@ -3,7 +3,7 @@ from app.db.models.course import Course
 from app.schemas.course import CourseCreate
 
 def create_course(db: Session, course: CourseCreate):
-    db_course = Course(**course.dict())
+    db_course = Course(**course.model_dump())
     db.add(db_course)
     db.commit()
     db.refresh(db_course)

@@ -71,10 +71,7 @@ def update_course(
     db.commit()
     db.refresh(course)
 
-    return {
-        "message": "Course updated successfully.",
-        "course": course
-    }
+    return course
 
 @router.delete("/{course_id}", status_code=200)
 def delete_course(course_id: int, db: Session = Depends(get_db)):
