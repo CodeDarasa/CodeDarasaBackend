@@ -17,6 +17,16 @@ def get_db():
 
 @router.post("/", response_model=CourseOut)
 def create_new_course(course: CourseCreate, db: Session = Depends(get_db)):
+    # Check for duplicate by title and youtube_url
+    existing = db.query(get_courses.__globals__['Course']).filter_by(
+        title=course.title,
+        youtube_url=course.youtube_url
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Course with this title and YouTube URL already exists."
+        )
     return create_course(db, course)
 
 @router.get("/", response_model=List[CourseOut])
