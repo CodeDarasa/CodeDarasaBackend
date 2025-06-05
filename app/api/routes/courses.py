@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -17,11 +17,13 @@ def get_db():
 
 @router.post("/", response_model=CourseOut)
 def create_new_course(course: CourseCreate, db: Session = Depends(get_db)):
+
     # Check for duplicate by title and youtube_url
     existing = db.query(get_courses.__globals__['Course']).filter_by(
         title=course.title,
         youtube_url=course.youtube_url
     ).first()
+
     if existing:
         raise HTTPException(
             status_code=400,
@@ -38,4 +40,35 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
     course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+    return course
+
+@router.put("/{course_id}", response_model=CourseOut)
+def update_course(
+    course_id: int,
+    course_update: CourseCreate = Body(...),
+    db: Session = Depends(get_db)
+):
+    course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Check for duplicate (excluding current course)
+    duplicate = db.query(get_courses.__globals__['Course']).filter(
+        get_courses.__globals__['Course'].id != course_id,
+        get_courses.__globals__['Course'].title == course_update.title,
+        get_courses.__globals__['Course'].youtube_url == course_update.youtube_url
+    ).first()
+    if duplicate:
+        raise HTTPException(
+            status_code=400,
+            detail="Another course with this title and YouTube URL already exists."
+        )
+
+    course.title = course_update.title
+    course.description = course_update.description
+    course.youtube_url = course_update.youtube_url
+
+    db.commit()
+    db.refresh(course)
+
     return course
