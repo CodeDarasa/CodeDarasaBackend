@@ -12,9 +12,7 @@ def unique_name(prefix="Category"):
 def user_token():
     username = unique_name("user")
     password = "testpass"
-    # Register user
     client.post("/api/auth/register", json={"username": username, "password": password})
-    # Login user
     resp = client.post("/api/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
@@ -41,6 +39,10 @@ def test_create_duplicate_category(user_token):
     assert response.status_code == 400
     assert response.json()["detail"] == "Category with this name already exists."
 
+def test_create_category_missing_name(user_token):
+    response = client.post("/api/categories/", json={}, headers=auth_headers(user_token))
+    assert response.status_code == 422
+
 def test_update_category(user_token):
     name = unique_name("ToUpdate")
     response = client.post("/api/categories/", json={"name": name}, headers=auth_headers(user_token))
@@ -51,17 +53,10 @@ def test_update_category(user_token):
     data = response.json()
     assert data["name"] == new_name
 
-def test_update_category_unauthenticated():
-    # Create with auth
-    username = unique_name("user")
-    password = "testpass"
-    client.post("/api/auth/register", json={"username": username, "password": password})
-    resp = client.post("/api/auth/login", json={"username": username, "password": password})
-    token = resp.json()["access_token"]
+def test_update_category_unauthenticated(user_token):
     name = unique_name("ToUpdateNoAuth")
-    response = client.post("/api/categories/", json={"name": name}, headers=auth_headers(token))
+    response = client.post("/api/categories/", json={"name": name}, headers=auth_headers(user_token))
     category_id = response.json()["id"]
-    # Try update without auth
     response = client.put(f"/api/categories/{category_id}", json={"name": unique_name("NoAuth")})
     assert response.status_code == 401
 
@@ -74,6 +69,10 @@ def test_update_category_duplicate_name(user_token):
     response = client.put(f"/api/categories/{id2}", json={"name": name1}, headers=auth_headers(user_token))
     assert response.status_code == 400
     assert response.json()["detail"] == "Category with this name already exists."
+
+def test_update_nonexistent_category(user_token):
+    response = client.put(f"/api/categories/999999", json={"name": unique_name("Nonexistent")}, headers=auth_headers(user_token))
+    assert response.status_code == 404
 
 def test_get_single_category(user_token):
     name = unique_name("SingleRetrieve")
@@ -104,3 +103,7 @@ def test_delete_category_unauthenticated(user_token):
     category_id = response.json()["id"]
     response = client.delete(f"/api/categories/{category_id}")
     assert response.status_code == 401
+
+def test_delete_nonexistent_category(user_token):
+    response = client.delete(f"/api/categories/999999", headers=auth_headers(user_token))
+    assert response.status_code == 404
