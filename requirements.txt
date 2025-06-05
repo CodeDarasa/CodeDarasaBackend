@@ -8,3 +8,5 @@ pydantic
 pytest
 httpx
 pytest-asyncio
+passlib
+python-jose[cryptography]

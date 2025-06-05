@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.api.deps import get_current_user
 from app.schemas.course import CourseCreate, CourseOut
 from app.crud.course import create_course, get_courses
 from app.db.session import SessionLocal
@@ -16,7 +17,11 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=CourseOut)
-def create_new_course(course: CourseCreate, db: Session = Depends(get_db)):
+def create_new_course(
+    course: CourseCreate, 
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+    ):
 
     # Check for duplicate by title and youtube_url
     existing = db.query(get_courses.__globals__['Course']).filter_by(
@@ -46,7 +51,8 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
 def update_course(
     course_id: int,
     course_update: CourseCreate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
     course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
@@ -74,7 +80,11 @@ def update_course(
     return course
 
 @router.delete("/{course_id}", status_code=200)
-def delete_course(course_id: int, db: Session = Depends(get_db)):
+def delete_course(
+    course_id: int, 
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")

@@ -1,4 +1,5 @@
 from app.db.models.course import Base
+from app.db.models import user
 from app.db.session import engine
 
 def init():
