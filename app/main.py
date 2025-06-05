@@ -26,3 +26,17 @@ app.include_router(
     prefix="/api/users",
     tags=["users"]
 )
+
+from app.api.routes import comments, ratings
+
+app.include_router(
+    comments.router, 
+    prefix="/api", 
+    tags=["comments"]
+)
+
+app.include_router(
+    ratings.router, 
+    prefix="/api", 
+    tags=["ratings"]
+)
