@@ -32,3 +32,10 @@ def create_new_course(course: CourseCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[CourseOut])
 def list_courses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return get_courses(db, skip=skip, limit=limit)
+
+@router.get("/{course_id}", response_model=CourseOut)
+def get_course(course_id: int, db: Session = Depends(get_db)):
+    course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return course
