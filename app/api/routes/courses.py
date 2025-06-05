@@ -43,10 +43,13 @@ def list_courses(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Page size"),
     search: Optional[str] = Query(None, description="Search by title"),
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
 ):
     query = db.query(Course)
     if search:
         query = query.filter(Course.title.ilike(f"%{search}%"))
+    if category_id:
+        query = query.filter(Course.category_id == category_id)
     courses = query.offset((page - 1) * page_size).limit(page_size).all()
     return courses
 
