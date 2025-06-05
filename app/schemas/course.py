@@ -11,9 +11,12 @@ class CourseBase(BaseModel):
 class CourseCreate(CourseBase):
     pass
 
+class CourseUpdate(CourseBase):
+    pass
+
 class CourseOut(CourseBase):
     id: int
-    category: Optional[CategoryOut] = None
+    category_id: Optional[int] = None
 
     model_config = {
         "from_attributes": True

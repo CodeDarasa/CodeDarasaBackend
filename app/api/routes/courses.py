@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.api.deps import get_current_user
-from app.schemas.course import CourseCreate, CourseOut
+from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
 from app.db.models.course import Course
 from app.crud.course import create_course, get_courses
 from app.db.session import SessionLocal
@@ -63,12 +63,12 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
 @router.put("/{course_id}", response_model=CourseOut)
 def update_course(
     course_id: int,
-    course_update: CourseCreate = Body(...),
+    course_update: CourseUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
-    if not course:
+    db_course = db.query(Course).filter(Course.id == course_id).first()
+    if not db_course:
         raise HTTPException(status_code=404, detail="Course not found")
     
     # Check for duplicate (excluding current course)
@@ -83,14 +83,14 @@ def update_course(
             detail="Another course with this title and YouTube URL already exists."
         )
 
-    course.title = course_update.title
-    course.description = course_update.description
-    course.youtube_url = course_update.youtube_url
+    db_course.title = course_update.title
+    db_course.description = course_update.description
+    db_course.youtube_url = course_update.youtube_url
 
     db.commit()
-    db.refresh(course)
+    db.refresh(db_course)
 
-    return course
+    return db_course
 
 @router.delete("/{course_id}", status_code=200)
 def delete_course(

@@ -3,7 +3,12 @@ from app.db.models.course import Course
 from app.schemas.course import CourseCreate
 
 def create_course(db: Session, course: CourseCreate):
-    db_course = Course(**course.model_dump())
+    db_course = Course(
+        title=course.title,
+        description=course.description,
+        youtube_url=course.youtube_url,
+        category_id=course.category_id
+    )
     db.add(db_course)
     db.commit()
     db.refresh(db_course)
