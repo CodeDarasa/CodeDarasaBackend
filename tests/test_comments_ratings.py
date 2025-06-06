@@ -5,6 +5,8 @@ from app.main import app
 
 client = TestClient(app)
 
+API_PREFIX = "/api/v1"
+
 def unique_name(prefix):
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
@@ -12,21 +14,21 @@ def unique_name(prefix):
 def user_token():
     username = unique_name("user")
     password = "testpass"
-    client.post("/api/auth/register", json={"username": username, "password": password})
-    resp = client.post("/api/auth/login", json={"username": username, "password": password})
+    client.post(f"{API_PREFIX}/auth/register", json={"username": username, "password": password})
+    resp = client.post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
 @pytest.fixture
 def category_id(user_token):
     name = unique_name("Category")
-    resp = client.post("/api/categories/", json={"name": name}, headers={"Authorization": f"Bearer {user_token}"})
+    resp = client.post(f"{API_PREFIX}/categories/", json={"name": name}, headers={"Authorization": f"Bearer {user_token}"})
     return resp.json()["id"]
 
 @pytest.fixture
 def course_id(user_token, category_id):
     title = unique_name("Course")
     resp = client.post(
-        "/api/courses/",
+        f"{API_PREFIX}/courses/",
         json={
             "title": title,
             "description": "desc",
@@ -42,7 +44,7 @@ def auth_headers(token):
 
 def test_add_comment(user_token, course_id):
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Great course!"},
         headers=auth_headers(user_token)
     )
@@ -53,11 +55,11 @@ def test_add_comment(user_token, course_id):
 
 def test_list_comments(user_token, course_id):
     client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Nice!"},
         headers=auth_headers(user_token)
     )
-    resp = client.get(f"/api/courses/{course_id}/comments/")
+    resp = client.get(f"{API_PREFIX}/courses/{course_id}/comments/")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
@@ -65,7 +67,7 @@ def test_list_comments(user_token, course_id):
 
 def test_rate_course(user_token, course_id):
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 5},
         headers=auth_headers(user_token)
     )
@@ -76,12 +78,12 @@ def test_rate_course(user_token, course_id):
 
 def test_update_rating(user_token, course_id):
     client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 3},
         headers=auth_headers(user_token)
     )
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 4},
         headers=auth_headers(user_token)
     )
@@ -91,11 +93,11 @@ def test_update_rating(user_token, course_id):
 
 def test_list_ratings(user_token, course_id):
     client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 4},
         headers=auth_headers(user_token)
     )
-    resp = client.get(f"/api/courses/{course_id}/ratings/")
+    resp = client.get(f"{API_PREFIX}/courses/{course_id}/ratings/")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
@@ -104,14 +106,14 @@ def test_list_ratings(user_token, course_id):
 def test_edit_comment(user_token, course_id):
     # Add comment
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Original comment"},
         headers=auth_headers(user_token)
     )
     comment_id = resp.json()["id"]
     # Edit comment
     resp = client.put(
-        f"/api/comments/{comment_id}",
+        f"{API_PREFIX}/comments/{comment_id}",
         json={"content": "Edited comment"},
         headers=auth_headers(user_token)
     )
@@ -121,14 +123,14 @@ def test_edit_comment(user_token, course_id):
 def test_edit_rating(user_token, course_id):
     # Add rating
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 3},
         headers=auth_headers(user_token)
     )
     rating_id = resp.json()["id"]
     # Edit rating
     resp = client.put(
-        f"/api/ratings/{rating_id}",
+        f"{API_PREFIX}/ratings/{rating_id}",
         json={"value": 5},
         headers=auth_headers(user_token)
     )
@@ -138,32 +140,32 @@ def test_edit_rating(user_token, course_id):
 def test_delete_comment(user_token, course_id):
     # Add comment
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "To be deleted"},
         headers=auth_headers(user_token)
     )
     comment_id = resp.json()["id"]
     # Delete comment
-    resp = client.delete(f"/api/comments/{comment_id}", headers=auth_headers(user_token))
+    resp = client.delete(f"{API_PREFIX}/comments/{comment_id}", headers=auth_headers(user_token))
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Comment deleted successfully"
 
 def test_delete_rating(user_token, course_id):
     # Add rating
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 2},
         headers=auth_headers(user_token)
     )
     rating_id = resp.json()["id"]
     # Delete rating
-    resp = client.delete(f"/api/ratings/{rating_id}", headers=auth_headers(user_token))
+    resp = client.delete(f"{API_PREFIX}/ratings/{rating_id}", headers=auth_headers(user_token))
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Rating deleted successfully"
 
 def test_add_comment_unauthenticated(course_id):
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Unauthenticated comment"}
     )
     assert resp.status_code == 401
@@ -171,7 +173,7 @@ def test_add_comment_unauthenticated(course_id):
 
 def test_rate_course_unauthenticated(course_id):
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 5}
     )
     assert resp.status_code == 401
@@ -180,14 +182,14 @@ def test_rate_course_unauthenticated(course_id):
 def test_edit_comment_unauthenticated(user_token, course_id):
     # Add comment first
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "To edit"},
         headers=auth_headers(user_token)
     )
     comment_id = resp.json()["id"]
     # Try to edit without auth
     resp = client.put(
-        f"/api/comments/{comment_id}",
+        f"{API_PREFIX}/comments/{comment_id}",
         json={"content": "Edited without auth"}
     )
     assert resp.status_code == 401
@@ -196,14 +198,14 @@ def test_edit_comment_unauthenticated(user_token, course_id):
 def test_edit_rating_unauthenticated(user_token, course_id):
     # Add rating first
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 3},
         headers=auth_headers(user_token)
     )
     rating_id = resp.json()["id"]
     # Try to edit without auth
     resp = client.put(
-        f"/api/ratings/{rating_id}",
+        f"{API_PREFIX}/ratings/{rating_id}",
         json={"value": 5}
     )
     assert resp.status_code == 401
@@ -212,33 +214,33 @@ def test_edit_rating_unauthenticated(user_token, course_id):
 def test_delete_comment_unauthenticated(user_token, course_id):
     # Add comment first
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "To delete"},
         headers=auth_headers(user_token)
     )
     comment_id = resp.json()["id"]
     # Try to delete without auth
-    resp = client.delete(f"/api/comments/{comment_id}")
+    resp = client.delete(f"{API_PREFIX}/comments/{comment_id}")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
 def test_delete_rating_unauthenticated(user_token, course_id):
     # Add rating first
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 2},
         headers=auth_headers(user_token)
     )
     assert resp.status_code == 200
     rating_id = resp.json()["id"]
     # Try to delete without auth
-    resp = client.delete(f"/api/ratings/{rating_id}")
+    resp = client.delete(f"{API_PREFIX}/ratings/{rating_id}")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
 def test_add_comment_nonexistent_course(user_token):
     resp = client.post(
-        "/api/courses/999999/comments/",
+        f"{API_PREFIX}/courses/999999/comments/",
         json={"content": "Comment on nonexistent course"},
         headers=auth_headers(user_token)
     )
@@ -247,7 +249,7 @@ def test_add_comment_nonexistent_course(user_token):
 
 def test_rate_nonexistent_course(user_token):
     resp = client.post(
-        "/api/courses/999999/ratings/",
+        f"{API_PREFIX}/courses/999999/ratings/",
         json={"value": 5},
         headers=auth_headers(user_token)
     )
@@ -256,7 +258,7 @@ def test_rate_nonexistent_course(user_token):
 
 def test_edit_nonexistent_comment(user_token):
     resp = client.put(
-        "/api/comments/999999",
+        f"{API_PREFIX}/comments/999999",
         json={"content": "Edited nonexistent comment"},
         headers=auth_headers(user_token)
     )
@@ -265,7 +267,7 @@ def test_edit_nonexistent_comment(user_token):
 
 def test_edit_nonexistent_rating(user_token):
     resp = client.put(
-        "/api/ratings/999999",
+        f"{API_PREFIX}/ratings/999999",
         json={"value": 5},
         headers=auth_headers(user_token)
     )
@@ -273,19 +275,19 @@ def test_edit_nonexistent_rating(user_token):
     assert resp.json()["detail"] == "Rating not found"
 
 def test_delete_nonexistent_comment(user_token):
-    resp = client.delete("/api/comments/999999", headers=auth_headers(user_token))
+    resp = client.delete(f"{API_PREFIX}/comments/999999", headers=auth_headers(user_token))
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Comment not found"
 
 def test_delete_nonexistent_rating(user_token):
-    resp = client.delete("/api/ratings/999999", headers=auth_headers(user_token))
+    resp = client.delete(f"{API_PREFIX}/ratings/999999", headers=auth_headers(user_token))
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Rating not found"
 
 def test_edit_comment_forbidden(user_token, course_id):
     # Add comment as user
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "User's comment"},
         headers=auth_headers(user_token)
     )
@@ -293,11 +295,11 @@ def test_edit_comment_forbidden(user_token, course_id):
     
     # Try to edit as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post("/api/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post("/api/auth/login", json={"username": another_user_token, "password": "testpass"})
-    
+    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
+
     resp = client.put(
-        f"/api/comments/{comment_id}",
+        f"{API_PREFIX}/comments/{comment_id}",
         json={"content": "Edited by another user"},
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
@@ -309,7 +311,7 @@ def test_edit_comment_forbidden(user_token, course_id):
 def test_edit_rating_forbidden(user_token, course_id):
     # Add rating as user
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 3},
         headers=auth_headers(user_token)
     )
@@ -317,11 +319,11 @@ def test_edit_rating_forbidden(user_token, course_id):
     
     # Try to edit as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post("/api/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post("/api/auth/login", json={"username": another_user_token, "password": "testpass"})
-    
+    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
+
     resp = client.put(
-        f"/api/ratings/{rating_id}",
+        f"{API_PREFIX}/ratings/{rating_id}",
         json={"value": 5},
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
@@ -332,7 +334,7 @@ def test_edit_rating_forbidden(user_token, course_id):
 def test_delete_comment_forbidden(user_token, course_id):
     # Add comment as user
     resp = client.post(
-        f"/api/courses/{course_id}/comments/",
+        f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "User's comment"},
         headers=auth_headers(user_token)
     )
@@ -340,11 +342,11 @@ def test_delete_comment_forbidden(user_token, course_id):
     
     # Try to delete as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post("/api/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post("/api/auth/login", json={"username": another_user_token, "password": "testpass"})
-    
+    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
+
     resp = client.delete(
-        f"/api/comments/{comment_id}",
+        f"{API_PREFIX}/comments/{comment_id}",
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
     
@@ -354,7 +356,7 @@ def test_delete_comment_forbidden(user_token, course_id):
 def test_delete_rating_forbidden(user_token, course_id):
     # Add rating as user
     resp = client.post(
-        f"/api/courses/{course_id}/ratings/",
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 3},
         headers=auth_headers(user_token)
     )
@@ -362,11 +364,11 @@ def test_delete_rating_forbidden(user_token, course_id):
     
     # Try to delete as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post("/api/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post("/api/auth/login", json={"username": another_user_token, "password": "testpass"})
-    
+    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
+
     resp = client.delete(
-        f"/api/ratings/{rating_id}",
+        f"{API_PREFIX}/ratings/{rating_id}",
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
     
