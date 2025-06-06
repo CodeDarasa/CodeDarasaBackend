@@ -177,7 +177,7 @@ def test_rate_course_unauthenticated(course_id):
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
-def test_edit_comment_unauthenticated(course_id):
+def test_edit_comment_unauthenticated(user_token, course_id):
     # Add comment first
     resp = client.post(
         f"/api/courses/{course_id}/comments/",
@@ -193,7 +193,7 @@ def test_edit_comment_unauthenticated(course_id):
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
-def test_edit_rating_unauthenticated(course_id):
+def test_edit_rating_unauthenticated(user_token, course_id):
     # Add rating first
     resp = client.post(
         f"/api/courses/{course_id}/ratings/",
@@ -209,7 +209,7 @@ def test_edit_rating_unauthenticated(course_id):
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
-def test_delete_comment_unauthenticated(course_id):
+def test_delete_comment_unauthenticated(user_token, course_id):
     # Add comment first
     resp = client.post(
         f"/api/courses/{course_id}/comments/",
@@ -222,13 +222,14 @@ def test_delete_comment_unauthenticated(course_id):
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
-def test_delete_rating_unauthenticated(course_id):
+def test_delete_rating_unauthenticated(user_token, course_id):
     # Add rating first
     resp = client.post(
         f"/api/courses/{course_id}/ratings/",
         json={"value": 2},
         headers=auth_headers(user_token)
     )
+    assert resp.status_code == 200
     rating_id = resp.json()["id"]
     # Try to delete without auth
     resp = client.delete(f"/api/ratings/{rating_id}")
