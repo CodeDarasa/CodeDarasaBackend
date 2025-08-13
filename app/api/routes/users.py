@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from app.db.models.rating import Rating
 from app.db.models.user import User
 from app.schemas.user import UserOut, UserUpdate
+from app.schemas.rating import RatingOut
 from app.api.deps import get_current_user, get_db
 from app.schemas.user import UserCreate
 from passlib.context import CryptContext
@@ -39,6 +41,11 @@ def update_profile(
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+@router.get("/me/ratings/", response_model=list[RatingOut])
+def user_ratings(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(Rating).filter(Rating.user_id == current_user.id).all()
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

@@ -22,14 +22,19 @@ def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(ge
 def list_comments(course_id: int, db: Session = Depends(get_db)):
     return db.query(Comment).filter(Comment.course_id == course_id).all()
 
-@router.put("/comments/{comment_id}", response_model=CommentOut)
+@router.get("/courses/{course_id}/comments/{comment_id}", response_model=list[CommentOut])
+def get_comment(course_id: int, comment_id: int, db: Session = Depends(get_db)):
+    return db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).all()
+
+@router.put("/courses/{course_id}/comments/{comment_id}", response_model=CommentOut)
 def edit_comment(
     comment_id: int,
+    course_id: int,
     comment: CommentCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    db_comment = db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:
@@ -39,13 +44,14 @@ def edit_comment(
     db.refresh(db_comment)
     return db_comment
 
-@router.delete("/comments/{comment_id}", response_model=dict)
+@router.delete("/courses/{course_id}/comments/{comment_id}", response_model=dict)
 def delete_comment(
     comment_id: int,
+    course_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    db_comment = db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:

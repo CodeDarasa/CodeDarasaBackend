@@ -25,33 +25,17 @@ def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_
     return db_rating
 
 @router.get("/courses/{course_id}/ratings/", response_model=list[RatingOut])
-def list_ratings(course_id: int, db: Session = Depends(get_db)):
+def course_ratings(course_id: int, db: Session = Depends(get_db)):
     return db.query(Rating).filter(Rating.course_id == course_id).all()
 
-@router.put("/ratings/{rating_id}", response_model=RatingOut)
-def edit_rating(
-    rating_id: int,
-    rating: RatingCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    db_rating = db.query(Rating).filter(Rating.id == rating_id).first()
-    if not db_rating:
-        raise HTTPException(status_code=404, detail="Rating not found")
-    if db_rating.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed to edit this rating")
-    db_rating.value = rating.value
-    db.commit()
-    db.refresh(db_rating)
-    return db_rating
-
-@router.delete("/ratings/{rating_id}", response_model=dict)
+@router.delete("/courses/{course_id}/ratings/{rating_id}", response_model=dict)
 def delete_rating(
+    course_id: int,
     rating_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_rating = db.query(Rating).filter(Rating.id == rating_id).first()
+    db_rating = db.query(Rating).filter(Rating.course_id == course_id).filter(Rating.id == rating_id).first()
     if not db_rating:
         raise HTTPException(status_code=404, detail="Rating not found")
     if db_rating.user_id != current_user.id:
