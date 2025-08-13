@@ -2,20 +2,11 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
 from app.db.models.course import Course
-from app.crud.course import create_course, get_courses
-from app.db.session import SessionLocal
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/", response_model=CourseOut)
 def create_new_course(
@@ -25,7 +16,7 @@ def create_new_course(
     ):
 
     # Check for duplicate by title and youtube_url
-    existing = db.query(get_courses.__globals__['Course']).filter_by(
+    existing = db.query(list_courses.__globals__['Course']).filter_by(
         title=course.title,
         youtube_url=course.youtube_url
     ).first()
@@ -64,9 +55,10 @@ def list_courses(
     courses = query.offset((page - 1) * page_size).limit(page_size).all()
     return courses
 
+
 @router.get("/{course_id}", response_model=CourseOut)
 def get_course(course_id: int, db: Session = Depends(get_db)):
-    course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
+    course = db.query(list_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     return course
@@ -83,10 +75,11 @@ def update_course(
         raise HTTPException(status_code=404, detail="Course not found")
     
     # Check for duplicate (excluding current course)
-    duplicate = db.query(get_courses.__globals__['Course']).filter(
-        get_courses.__globals__['Course'].id != course_id,
-        get_courses.__globals__['Course'].title == course_update.title,
-        get_courses.__globals__['Course'].youtube_url == course_update.youtube_url
+    duplicate = db.query(list_courses.__globals__['Course']).filter(
+        list_courses.__globals__['Course'].id != course_id,
+        list_courses.__globals__['Course'].title == course_update.title,
+        list_courses.__globals__['Course'].description == course_update.description,
+        list_courses.__globals__['Course'].youtube_url == course_update.youtube_url
     ).first()
     if duplicate:
         raise HTTPException(
@@ -109,7 +102,7 @@ def delete_course(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    course = db.query(get_courses.__globals__['Course']).filter_by(id=course_id).first()
+    course = db.query(list_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     db.delete(course)

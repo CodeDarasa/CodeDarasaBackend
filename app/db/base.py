@@ -1,1 +1,3 @@
-from app.db.models.course import Course
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()

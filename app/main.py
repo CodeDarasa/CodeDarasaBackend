@@ -1,10 +1,20 @@
 from fastapi import FastAPI
-from app.api.routes import auth, courses, categories, users
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes import auth, courses, categories, comments, ratings, users
 
 app = FastAPI(
     title="CodeDarasa API",
     description="Code Darasa Backend",
     version="1.0.0"
+)
+
+# Allow all origins (for development)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Or specify your frontend URL(s)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Versioned API prefix
@@ -33,8 +43,6 @@ app.include_router(
     prefix=f"{API_PREFIX}/users",
     tags=["users"]
 )
-
-from app.api.routes import comments, ratings
 
 app.include_router(
     comments.router, 

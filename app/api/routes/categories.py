@@ -1,19 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
 from app.db.models.category import Category
 from app.schemas.category import CategoryCreate, CategoryOut
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from typing import List
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/", response_model=CategoryOut)
 def create_category(

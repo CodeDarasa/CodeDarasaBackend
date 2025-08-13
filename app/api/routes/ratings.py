@@ -3,17 +3,9 @@ from sqlalchemy.orm import Session
 from app.db.models.rating import Rating
 from app.db.models.course import Course
 from app.schemas.rating import RatingCreate, RatingOut
-from app.api.routes.auth import get_current_user
-from app.db.session import SessionLocal
+from app.api.deps import get_current_user, get_db
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/courses/{course_id}/ratings/", response_model=RatingOut)
 def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
