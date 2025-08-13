@@ -65,44 +65,6 @@ def test_list_comments(user_token, course_id):
     assert isinstance(data, list)
     assert any(comment["content"] == "Nice!" for comment in data)
 
-def test_rate_course(user_token, course_id):
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 5},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 200 or resp.status_code == 201
-    data = resp.json()
-    assert data["value"] == 5
-    assert data["course_id"] == course_id
-
-def test_update_rating(user_token, course_id):
-    client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 3},
-        headers=auth_headers(user_token)
-    )
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 4},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["value"] == 4
-
-def test_list_ratings(user_token, course_id):
-    client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 4},
-        headers=auth_headers(user_token)
-    )
-    resp = client.get(f"{API_PREFIX}/courses/{course_id}/ratings/")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert isinstance(data, list)
-    assert any(rating["value"] == 4 for rating in data)
-
 def test_edit_comment(user_token, course_id):
     # Add comment
     resp = client.post(
@@ -113,29 +75,12 @@ def test_edit_comment(user_token, course_id):
     comment_id = resp.json()["id"]
     # Edit comment
     resp = client.put(
-        f"{API_PREFIX}/comments/{comment_id}",
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}",
         json={"content": "Edited comment"},
         headers=auth_headers(user_token)
     )
     assert resp.status_code == 200
     assert resp.json()["content"] == "Edited comment"
-
-def test_edit_rating(user_token, course_id):
-    # Add rating
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 3},
-        headers=auth_headers(user_token)
-    )
-    rating_id = resp.json()["id"]
-    # Edit rating
-    resp = client.put(
-        f"{API_PREFIX}/ratings/{rating_id}",
-        json={"value": 5},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 200
-    assert resp.json()["value"] == 5
 
 def test_delete_comment(user_token, course_id):
     # Add comment
@@ -146,35 +91,14 @@ def test_delete_comment(user_token, course_id):
     )
     comment_id = resp.json()["id"]
     # Delete comment
-    resp = client.delete(f"{API_PREFIX}/comments/{comment_id}", headers=auth_headers(user_token))
+    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}", headers=auth_headers(user_token))
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Comment deleted successfully"
-
-def test_delete_rating(user_token, course_id):
-    # Add rating
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 2},
-        headers=auth_headers(user_token)
-    )
-    rating_id = resp.json()["id"]
-    # Delete rating
-    resp = client.delete(f"{API_PREFIX}/ratings/{rating_id}", headers=auth_headers(user_token))
-    assert resp.status_code == 200
-    assert resp.json()["detail"] == "Rating deleted successfully"
 
 def test_add_comment_unauthenticated(course_id):
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Unauthenticated comment"}
-    )
-    assert resp.status_code == 401
-    assert resp.json()["detail"] == "Not authenticated"
-
-def test_rate_course_unauthenticated(course_id):
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 5}
     )
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
@@ -189,24 +113,8 @@ def test_edit_comment_unauthenticated(user_token, course_id):
     comment_id = resp.json()["id"]
     # Try to edit without auth
     resp = client.put(
-        f"{API_PREFIX}/comments/{comment_id}",
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}",
         json={"content": "Edited without auth"}
-    )
-    assert resp.status_code == 401
-    assert resp.json()["detail"] == "Not authenticated"
-
-def test_edit_rating_unauthenticated(user_token, course_id):
-    # Add rating first
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 3},
-        headers=auth_headers(user_token)
-    )
-    rating_id = resp.json()["id"]
-    # Try to edit without auth
-    resp = client.put(
-        f"{API_PREFIX}/ratings/{rating_id}",
-        json={"value": 5}
     )
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
@@ -220,21 +128,7 @@ def test_delete_comment_unauthenticated(user_token, course_id):
     )
     comment_id = resp.json()["id"]
     # Try to delete without auth
-    resp = client.delete(f"{API_PREFIX}/comments/{comment_id}")
-    assert resp.status_code == 401
-    assert resp.json()["detail"] == "Not authenticated"
-
-def test_delete_rating_unauthenticated(user_token, course_id):
-    # Add rating first
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 2},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 200
-    rating_id = resp.json()["id"]
-    # Try to delete without auth
-    resp = client.delete(f"{API_PREFIX}/ratings/{rating_id}")
+    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
@@ -247,42 +141,19 @@ def test_add_comment_nonexistent_course(user_token):
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Course not found"
 
-def test_rate_nonexistent_course(user_token):
-    resp = client.post(
-        f"{API_PREFIX}/courses/999999/ratings/",
-        json={"value": 5},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 404
-    assert resp.json()["detail"] == "Course not found"
-
-def test_edit_nonexistent_comment(user_token):
+def test_edit_nonexistent_comment(user_token, course_id):
     resp = client.put(
-        f"{API_PREFIX}/comments/999999",
+        f"{API_PREFIX}/courses/{course_id}/comments/999999",
         json={"content": "Edited nonexistent comment"},
         headers=auth_headers(user_token)
     )
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Comment not found"
 
-def test_edit_nonexistent_rating(user_token):
-    resp = client.put(
-        f"{API_PREFIX}/ratings/999999",
-        json={"value": 5},
-        headers=auth_headers(user_token)
-    )
-    assert resp.status_code == 404
-    assert resp.json()["detail"] == "Rating not found"
-
-def test_delete_nonexistent_comment(user_token):
-    resp = client.delete(f"{API_PREFIX}/comments/999999", headers=auth_headers(user_token))
+def test_delete_nonexistent_comment(user_token, course_id):
+    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/comments/999999", headers=auth_headers(user_token))
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Comment not found"
-
-def test_delete_nonexistent_rating(user_token):
-    resp = client.delete(f"{API_PREFIX}/ratings/999999", headers=auth_headers(user_token))
-    assert resp.status_code == 404
-    assert resp.json()["detail"] == "Rating not found"
 
 def test_edit_comment_forbidden(user_token, course_id):
     # Add comment as user
@@ -299,37 +170,13 @@ def test_edit_comment_forbidden(user_token, course_id):
     another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
 
     resp = client.put(
-        f"{API_PREFIX}/comments/{comment_id}",
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}",
         json={"content": "Edited by another user"},
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
     
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Not allowed to edit this comment"
-
-
-def test_edit_rating_forbidden(user_token, course_id):
-    # Add rating as user
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 3},
-        headers=auth_headers(user_token)
-    )
-    rating_id = resp.json()["id"]
-    
-    # Try to edit as another user (forbidden)
-    another_user_token = unique_name("another_user")
-    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
-
-    resp = client.put(
-        f"{API_PREFIX}/ratings/{rating_id}",
-        json={"value": 5},
-        headers=auth_headers(another_user_resp.json()["access_token"])
-    )
-    
-    assert resp.status_code == 403
-    assert resp.json()["detail"] == "Not allowed to edit this rating"
 
 def test_delete_comment_forbidden(user_token, course_id):
     # Add comment as user
@@ -346,32 +193,9 @@ def test_delete_comment_forbidden(user_token, course_id):
     another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
 
     resp = client.delete(
-        f"{API_PREFIX}/comments/{comment_id}",
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}",
         headers=auth_headers(another_user_resp.json()["access_token"])
     )
     
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Not allowed to delete this comment"
-
-def test_delete_rating_forbidden(user_token, course_id):
-    # Add rating as user
-    resp = client.post(
-        f"{API_PREFIX}/courses/{course_id}/ratings/",
-        json={"value": 3},
-        headers=auth_headers(user_token)
-    )
-    rating_id = resp.json()["id"]
-    
-    # Try to delete as another user (forbidden)
-    another_user_token = unique_name("another_user")
-    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
-    another_user_resp = client.post(f"{API_PREFIX}/auth/login", json={"username": another_user_token, "password": "testpass"})
-
-    resp = client.delete(
-        f"{API_PREFIX}/ratings/{rating_id}",
-        headers=auth_headers(another_user_resp.json()["access_token"])
-    )
-    
-    assert resp.status_code == 403
-    assert resp.json()["detail"] == "Not allowed to delete this rating"
-

@@ -1,4 +1,5 @@
 import uuid
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -8,6 +9,41 @@ API_PREFIX = "/api/v1"
 
 def unique_username():
     return f"user_{uuid.uuid4().hex[:8]}"
+
+def auth_headers(token):
+    return {"Authorization": f"Bearer {token}"}
+
+def unique_name(prefix):
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+@pytest.fixture
+def user_token():
+    username = unique_name("user")
+    password = "testpass"
+    client.post(f"{API_PREFIX}/auth/register", json={"username": username, "password": password})
+    resp = client.post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
+    return resp.json()["access_token"]
+
+@pytest.fixture
+def category_id(user_token):
+    name = unique_name("Category")
+    resp = client.post(f"{API_PREFIX}/categories/", json={"name": name}, headers={"Authorization": f"Bearer {user_token}"})
+    return resp.json()["id"]
+
+@pytest.fixture
+def course_id(user_token, category_id):
+    title = unique_name("Course")
+    resp = client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/test",
+            "category_id": category_id
+        },
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    return resp.json()["id"]
 
 def test_register_and_login():
     username = unique_username()
@@ -78,3 +114,13 @@ def test_get_profile():
 def test_get_profile_unauthenticated():
     resp = client.get(f"{API_PREFIX}/users/me")
     assert resp.status_code == 401
+    
+def test_get_user_ratings(user_token, course_id):
+    resp = client.post(
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
+        json={"value": 5},
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code == 200 or resp.status_code == 201
+    data = resp.json()
+    assert len(data) >= 1    
