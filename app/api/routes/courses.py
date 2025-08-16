@@ -105,6 +105,8 @@ def delete_course(
     course = db.query(list_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+    if course.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this course")
     db.delete(course)
     db.commit()
     return {"message": "Course deleted successfully."}

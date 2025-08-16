@@ -7,7 +7,7 @@ class Rating(Base):
     id = Column(Integer, primary_key=True, index=True)
     value = Column(Integer, nullable=False)  # 1-5
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
 
     user = relationship("User")
     course = relationship("Course")

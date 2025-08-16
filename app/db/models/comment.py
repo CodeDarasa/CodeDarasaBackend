@@ -8,7 +8,7 @@ class Comment(Base):
     content = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
 
     user = relationship("User")
     course = relationship("Course")
