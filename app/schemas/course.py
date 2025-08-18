@@ -1,7 +1,9 @@
+from pydantic import BaseModel
 from typing import Optional
+
 from app.schemas.category import CategoryOut
 from app.schemas.user import UserOut
-from pydantic import BaseModel
+
 
 class CourseBase(BaseModel):
     title: str
@@ -9,11 +11,14 @@ class CourseBase(BaseModel):
     youtube_url: str
     category_id: Optional[int] = None
 
+
 class CourseCreate(CourseBase):
     pass
 
+
 class CourseUpdate(CourseBase):
     pass
+
 
 class CourseOut(CourseBase):
     id: int

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.routes import auth, courses, categories, comments, ratings, users
 
 app = FastAPI(
@@ -45,13 +46,13 @@ app.include_router(
 )
 
 app.include_router(
-    comments.router, 
-    prefix=f"{API_PREFIX}", 
+    comments.router,
+    prefix=f"{API_PREFIX}",
     tags=["comments"]
 )
 
 app.include_router(
-    ratings.router, 
-    prefix=f"{API_PREFIX}", 
+    ratings.router,
+    prefix=f"{API_PREFIX}",
     tags=["ratings"]
 )

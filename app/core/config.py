@@ -11,8 +11,10 @@ if ENV == "test":
 else:
     SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
+
 class Settings:
     DATABASE_URL: str = SQLALCHEMY_DATABASE_URL
     SECRET_KEY: str = os.getenv("SECRET_KEY")
+
 
 settings = Settings()

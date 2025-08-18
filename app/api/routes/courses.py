@@ -3,18 +3,18 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.api.deps import get_current_user, get_db
-from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
 from app.db.models.course import Course
+from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
 
 router = APIRouter()
 
+
 @router.post("/", response_model=CourseOut)
 def create_new_course(
-    course: CourseCreate, 
+    course: CourseCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
-    ):
-
+):
     # Check for duplicate by title and youtube_url
     existing = db.query(list_courses.__globals__['Course']).filter_by(
         title=course.title,
@@ -26,7 +26,7 @@ def create_new_course(
             status_code=400,
             detail="Course with this title and YouTube URL already exists."
         )
-        
+
     db_course = Course(
         title=course.title,
         description=course.description,
@@ -38,6 +38,7 @@ def create_new_course(
     db.commit()
     db.refresh(db_course)
     return db_course
+
 
 @router.get("/", response_model=List[CourseOut])
 def list_courses(
@@ -63,6 +64,7 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Course not found")
     return course
 
+
 @router.put("/{course_id}", response_model=CourseOut)
 def update_course(
     course_id: int,
@@ -73,7 +75,7 @@ def update_course(
     db_course = db.query(Course).filter(Course.id == course_id).first()
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found")
-    
+
     # Check for duplicate (excluding current course)
     duplicate = db.query(list_courses.__globals__['Course']).filter(
         list_courses.__globals__['Course'].id != course_id,
@@ -96,9 +98,10 @@ def update_course(
 
     return db_course
 
+
 @router.delete("/{course_id}", status_code=200)
 def delete_course(
-    course_id: int, 
+    course_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):

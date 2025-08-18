@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.models.rating import Rating
-from app.db.models.course import Course
-from app.schemas.rating import RatingCreate, RatingOut
+
 from app.api.deps import get_current_user, get_db
+from app.db.models.course import Course
+from app.db.models.rating import Rating
+from app.schemas.rating import RatingCreate, RatingOut
 
 router = APIRouter()
 
+
 @router.post("/courses/{course_id}/ratings/", response_model=RatingOut)
-def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -24,9 +27,11 @@ def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_
     db.refresh(db_rating)
     return db_rating
 
+
 @router.get("/courses/{course_id}/ratings/", response_model=list[RatingOut])
 def course_ratings(course_id: int, db: Session = Depends(get_db)):
     return db.query(Rating).filter(Rating.course_id == course_id).all()
+
 
 @router.delete("/courses/{course_id}/ratings/{rating_id}", response_model=dict)
 def delete_rating(

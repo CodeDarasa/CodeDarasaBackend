@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
+
 from app.db.base import Base
+
 
 class Rating(Base):
     __tablename__ = "ratings"
@@ -12,4 +14,3 @@ class Rating(Base):
     user = relationship("User")
     course = relationship("Course")
     __table_args__ = (UniqueConstraint('user_id', 'course_id', name='_user_course_uc'),)
-    

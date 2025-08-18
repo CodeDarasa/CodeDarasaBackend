@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user, get_db
 from app.db.models.comment import Comment
 from app.db.models.course import Course
 from app.schemas.comment import CommentCreate, CommentOut
-from app.api.deps import get_current_user, get_db
 
 router = APIRouter()
 
+
 @router.post("/courses/{course_id}/comments/", response_model=CommentOut)
-def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(get_db),
+                current_user=Depends(get_current_user)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -18,13 +21,16 @@ def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(ge
     db.refresh(db_comment)
     return db_comment
 
+
 @router.get("/courses/{course_id}/comments/", response_model=list[CommentOut])
 def list_comments(course_id: int, db: Session = Depends(get_db)):
     return db.query(Comment).filter(Comment.course_id == course_id).all()
 
+
 @router.get("/courses/{course_id}/comments/{comment_id}", response_model=list[CommentOut])
 def get_comment(course_id: int, comment_id: int, db: Session = Depends(get_db)):
     return db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).all()
+
 
 @router.put("/courses/{course_id}/comments/{comment_id}", response_model=CommentOut)
 def edit_comment(
@@ -43,6 +49,7 @@ def edit_comment(
     db.commit()
     db.refresh(db_comment)
     return db_comment
+
 
 @router.delete("/courses/{course_id}/comments/{comment_id}", response_model=dict)
 def delete_comment(

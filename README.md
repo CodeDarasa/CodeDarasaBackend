@@ -1,6 +1,7 @@
 # Code Darasa Backend
 
-Code Darasa is an edtech platform for sharing programming tutorials and full video-based courses. This backend is built using **FastAPI** and **PostgreSQL**, with **SQLAlchemy** for ORM and **Alembic** for migrations.
+Code Darasa is an edtech platform for sharing programming tutorials and full video-based courses. This backend is built
+using **FastAPI** and **PostgreSQL**, with **SQLAlchemy** for ORM and **Alembic** for migrations.
 
 ---
 

@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user, get_db
 from app.db.models.rating import Rating
 from app.db.models.user import User
-from app.schemas.user import UserOut, UserUpdate
 from app.schemas.rating import RatingOut
-from app.api.deps import get_current_user, get_db
 from app.schemas.user import UserCreate
-from passlib.context import CryptContext
+from app.schemas.user import UserOut, UserUpdate
 
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def get_user_by_username(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
+
 
 def create_user(db: Session, user: UserCreate):
     hashed_password = pwd_context.hash(user.password)
@@ -23,9 +26,11 @@ def create_user(db: Session, user: UserCreate):
     db.refresh(db_user)
     return db_user
 
+
 @router.get("/me", response_model=UserOut)
 def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @router.put("/me", response_model=UserOut)
 def update_profile(
@@ -46,6 +51,7 @@ def update_profile(
 @router.get("/me/ratings/", response_model=list[RatingOut])
 def user_ratings(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(Rating).filter(Rating.user_id == current_user.id).all()
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

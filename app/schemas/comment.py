@@ -1,9 +1,11 @@
+from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+
 
 class CommentCreate(BaseModel):
     content: str
+
 
 class CommentOut(BaseModel):
     id: int
