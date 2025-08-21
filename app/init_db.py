@@ -1,5 +1,5 @@
 """This script initializes the database by creating all tables defined in the models."""
-from app.db.models.course import Base
+from app.db.base import Base
 from app.db.session import engine
 
 
