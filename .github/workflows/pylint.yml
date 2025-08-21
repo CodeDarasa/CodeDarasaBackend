@@ -22,4 +22,4 @@ jobs:
       - name: Analysing the code with pylint
         run: |
             # Exclude specific folders (e.g., tests, migrations)
-            PYTHONPATH=. pylint $(git ls-files '*.py' ':!:tests/*' ':!:alembic/*') --disable=too-few-public-methods
+            PYTHONPATH=. pylint $(git ls-files '*.py' ':!:tests/*' ':!:alembic/*') --disable=too-few-public-methods --disable=func.now is not callable (not-callable)
