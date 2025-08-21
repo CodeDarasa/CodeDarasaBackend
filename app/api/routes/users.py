@@ -1,4 +1,6 @@
 """User management routes for the FastAPI application."""
+from typing import List
+
 from fastapi import APIRouter, Depends
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -53,7 +55,7 @@ def update_profile(
     return db_user
 
 
-@router.get("/me/ratings/", response_model=list[RatingOut])
+@router.get("/me/ratings/", response_model=List[RatingOut])
 def user_ratings(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     """List all ratings made by the current user."""
     return db.query(Rating).filter(Rating.user_id == current_user.id).all()

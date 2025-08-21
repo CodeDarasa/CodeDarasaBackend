@@ -1,4 +1,6 @@
 """Ratings API Routes"""
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -33,7 +35,7 @@ def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_
     return db_rating
 
 
-@router.get("/courses/{course_id}/ratings/", response_model=list[RatingOut])
+@router.get("/courses/{course_id}/ratings/", response_model=List[RatingOut])
 def course_ratings(course_id: int, db: Session = Depends(get_db)):
     """List all ratings for a course."""
     return db.query(Rating).filter(Rating.course_id == course_id).all()

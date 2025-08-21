@@ -1,4 +1,6 @@
 """Comment management routes for courses in the application."""
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -24,13 +26,13 @@ def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(ge
     return db_comment
 
 
-@router.get("/courses/{course_id}/comments/", response_model=list[CommentOut])
+@router.get("/courses/{course_id}/comments/", response_model=List[CommentOut])
 def list_comments(course_id: int, db: Session = Depends(get_db)):
     """List all comments for a course."""
     return db.query(Comment).filter(Comment.course_id == course_id).all()
 
 
-@router.get("/courses/{course_id}/comments/{comment_id}", response_model=list[CommentOut])
+@router.get("/courses/{course_id}/comments/{comment_id}", response_model=List[CommentOut])
 def get_comment(course_id: int, comment_id: int, db: Session = Depends(get_db)):
     """Get a specific comment by ID."""
     return db\
