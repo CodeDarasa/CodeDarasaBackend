@@ -21,4 +21,5 @@ jobs:
           pip install pylint
       - name: Analysing the code with pylint
         run: |
-          PYTHONPATH=. pylint $(git ls-files '*.py')
+            # Exclude specific folders (e.g., tests, migrations)
+            PYTHONPATH=. pylint $(git ls-files '*.py' ':!:tests/*' ':!:alembic/*')
