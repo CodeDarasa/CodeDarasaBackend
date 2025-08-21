@@ -1,11 +1,13 @@
-from pydantic import BaseModel
+"""Schemas for Course"""
 from typing import Optional
 
-from app.schemas.category import CategoryOut
+from pydantic import BaseModel
+
 from app.schemas.user import UserOut
 
 
 class CourseBase(BaseModel):
+    """Base schema for Course."""
     title: str
     description: str
     youtube_url: str
@@ -13,14 +15,15 @@ class CourseBase(BaseModel):
 
 
 class CourseCreate(CourseBase):
-    pass
+    """Schema for creating a new Course."""
 
 
 class CourseUpdate(CourseBase):
-    pass
+    """Schema for updating an existing Course."""
 
 
 class CourseOut(CourseBase):
+    """Schema for outputting Course data."""
     id: int
     category_id: Optional[int] = None
     creator: UserOut
