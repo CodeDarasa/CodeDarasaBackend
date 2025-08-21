@@ -1,12 +1,13 @@
-"""Added account table
+"""Added Code Darasa tables
 
 Revision ID: 1f44764d7241
 Revises: 
 Create Date: 2025-08-16 13:38:08.460618
 
 """
-import sqlalchemy as sa
 from typing import Sequence, Union
+
+import sqlalchemy as sa
 
 from alembic import op
 
@@ -44,8 +45,12 @@ def upgrade() -> None:
                     sa.Column('youtube_url', sa.String(), nullable=True),
                     sa.Column('category_id', sa.Integer(), nullable=True),
                     sa.Column('creator_id', sa.Integer(), nullable=False),
-                    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-                    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+                    sa.Column(
+                        'created_at', sa.DateTime(), server_default=sa.text('now()'
+                    ), nullable=False),
+                    sa.Column(
+                        'updated_at', sa.DateTime(), server_default=sa.text('now()'
+                    ), nullable=False),
                     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
                     sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
                     sa.PrimaryKeyConstraint('id')
@@ -55,7 +60,9 @@ def upgrade() -> None:
     op.create_table('comments',
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('content', sa.String(), nullable=False),
-                    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+                    sa.Column(
+                        'created_at', sa.DateTime(), server_default=sa.text('now()'
+                    ), nullable=True),
                     sa.Column('user_id', sa.Integer(), nullable=False),
                     sa.Column('course_id', sa.Integer(), nullable=False),
                     sa.ForeignKeyConstraint(['course_id'], ['courses.id'], ondelete='CASCADE'),

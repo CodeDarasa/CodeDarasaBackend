@@ -1,3 +1,4 @@
+"""Authentication routes for user registration and login."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user."""
     if get_user_by_username(db, user.username):
         raise HTTPException(status_code=400, detail="Username already registered")
     return create_user(db, user)
@@ -18,6 +20,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(user: UserCreate, db: Session = Depends(get_db)):
+    """Login an existing user and return an access token."""
     db_user = get_user_by_username(db, user.username)
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")

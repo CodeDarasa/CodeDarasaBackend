@@ -1,5 +1,6 @@
-import pytest
+"""Test cases for course management API endpoints."""
 import uuid
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,20 +11,24 @@ API_PREFIX = "/api/v1"
 
 
 def unique_name(prefix):
+    """Generate a unique name with a given prefix for testing purposes."""
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
 @pytest.fixture
 def user_token():
+    """Fixture to create a user and return an authentication token."""
     username = unique_name("user")
     password = "testpass"
     client.post(f"{API_PREFIX}/auth/register", json={"username": username, "password": password})
-    resp = client.post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
+    resp = client\
+        .post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
 
 @pytest.fixture
 def category_id(user_token):
+    """Fixture to create a category and return its ID."""
     name = unique_name("Category")
     resp = client.post(f"{API_PREFIX}/categories/", json={"name": name},
                        headers={"Authorization": f"Bearer {user_token}"})
@@ -31,10 +36,12 @@ def category_id(user_token):
 
 
 def auth_headers(token):
+    """Generate authorization headers for authenticated requests."""
     return {"Authorization": f"Bearer {token}"}
 
 
 def test_create_course_success(user_token, category_id):
+    """Test creating a course with valid data."""
     title = unique_name("Course")
     resp = client.post(
         f"{API_PREFIX}/courses/",
@@ -54,6 +61,7 @@ def test_create_course_success(user_token, category_id):
 
 
 def test_create_course_unauthenticated(category_id):
+    """Test creating a course without authentication."""
     title = unique_name("CourseNoAuth")
     resp = client.post(
         f"{API_PREFIX}/courses/",
@@ -68,7 +76,7 @@ def test_create_course_unauthenticated(category_id):
 
 
 def test_create_course_missing_fields(user_token, category_id):
-    # Missing title
+    """Test creating a course with missing fields."""
     resp = client.post(
         f"{API_PREFIX}/courses/",
         json={
@@ -82,12 +90,14 @@ def test_create_course_missing_fields(user_token, category_id):
 
 
 def test_get_courses():
+    """Test retrieving the list of courses."""
     resp = client.get(f"{API_PREFIX}/courses/")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
 
 
 def test_get_single_course(user_token, category_id):
+    """Test retrieving a single course by ID."""
     title = unique_name("SingleCourse")
     resp = client.post(
         f"{API_PREFIX}/courses/",
@@ -108,11 +118,13 @@ def test_get_single_course(user_token, category_id):
 
 
 def test_get_nonexistent_course():
+    """Test retrieving a course that does not exist."""
     resp = client.get(f"{API_PREFIX}/courses/999999")
     assert resp.status_code == 404
 
 
 def test_update_course(user_token, category_id):
+    """Test updating an existing course."""
     # Create course
     title = unique_name("ToUpdate")
     resp = client.post(
@@ -144,6 +156,7 @@ def test_update_course(user_token, category_id):
 
 
 def test_update_course_unauthenticated(user_token, category_id):
+    """Test updating a course without authentication."""
     # Create course
     title = unique_name("ToUpdateNoAuth")
     resp = client.post(
@@ -171,6 +184,7 @@ def test_update_course_unauthenticated(user_token, category_id):
 
 
 def test_delete_course(user_token, category_id):
+    """Test deleting a course."""
     # Create course
     title = unique_name("ToDelete")
     resp = client.post(
@@ -186,10 +200,11 @@ def test_delete_course(user_token, category_id):
     course_id = resp.json()["id"]
     # Delete course
     resp = client.delete(f"{API_PREFIX}/courses/{course_id}", headers=auth_headers(user_token))
-    assert resp.status_code == 200 or resp.status_code == 204
+    assert resp.status_code in (200, 204)
 
 
 def test_delete_course_unauthenticated(user_token, category_id):
+    """Test deleting a course without authentication."""
     # Create course
     title = unique_name("ToDeleteNoAuth")
     resp = client.post(
@@ -209,6 +224,7 @@ def test_delete_course_unauthenticated(user_token, category_id):
 
 
 def test_filter_courses_by_category(user_token, category_id):
+    """Test filtering courses by category."""
     # Create a course in this category
     title = unique_name("CourseFilter")
     client.post(

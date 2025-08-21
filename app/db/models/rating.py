@@ -1,3 +1,4 @@
+"""Rating model for storing user ratings of courses."""
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -5,6 +6,7 @@ from app.db.base import Base
 
 
 class Rating(Base):
+    """Represents a rating given by a user to a course."""
     __tablename__ = "ratings"
     id = Column(Integer, primary_key=True, index=True)
     value = Column(Integer, nullable=False)  # 1-5

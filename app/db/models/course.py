@@ -1,3 +1,4 @@
+"""Course model for the database."""
 from sqlalchemy import Column, DateTime, func, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
@@ -5,6 +6,7 @@ from app.db.base import Base
 
 
 class Course(Base):
+    """Represents a course in the application."""
     __tablename__ = "courses"
 
     id = Column(Integer, primary_key=True, index=True)

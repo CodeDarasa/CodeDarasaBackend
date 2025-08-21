@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, Body
-from sqlalchemy.orm import Session
+"""Course Management API"""
 from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.db.models.course import Course
@@ -15,6 +17,7 @@ def create_new_course(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
+    """Create a new course."""
     # Check for duplicate by title and youtube_url
     existing = db.query(list_courses.__globals__['Course']).filter_by(
         title=course.title,
@@ -48,6 +51,7 @@ def list_courses(
     search: Optional[str] = Query(None, description="Search by title"),
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
 ):
+    """List courses with optional search and pagination."""
     query = db.query(Course)
     if search:
         query = query.filter(Course.title.ilike(f"%{search}%"))
@@ -59,6 +63,7 @@ def list_courses(
 
 @router.get("/{course_id}", response_model=CourseOut)
 def get_course(course_id: int, db: Session = Depends(get_db)):
+    """Get a course by ID."""
     course = db.query(list_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -70,8 +75,9 @@ def update_course(
     course_id: int,
     course_update: CourseUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    _=Depends(get_current_user)
 ):
+    """Update a course by ID."""
     db_course = db.query(Course).filter(Course.id == course_id).first()
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -105,6 +111,7 @@ def delete_course(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
+    """Delete a course by ID."""
     course = db.query(list_courses.__globals__['Course']).filter_by(id=course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")

@@ -1,5 +1,6 @@
-import pytest
+"""Test cases for course comments API endpoints."""
 import uuid
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,20 +11,24 @@ API_PREFIX = "/api/v1"
 
 
 def unique_name(prefix):
+    """Generate a unique name with a given prefix for testing purposes."""
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
 @pytest.fixture
 def user_token():
+    """Fixture to create a user and return an authentication token."""
     username = unique_name("user")
     password = "testpass"
     client.post(f"{API_PREFIX}/auth/register", json={"username": username, "password": password})
-    resp = client.post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
+    resp = client\
+        .post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
 
 @pytest.fixture
 def category_id(user_token):
+    """Fixture to create a category and return its ID."""
     name = unique_name("Category")
     resp = client.post(f"{API_PREFIX}/categories/", json={"name": name},
                        headers={"Authorization": f"Bearer {user_token}"})
@@ -32,6 +37,7 @@ def category_id(user_token):
 
 @pytest.fixture
 def course_id(user_token, category_id):
+    """Fixture to create a course and return its ID."""
     title = unique_name("Course")
     resp = client.post(
         f"{API_PREFIX}/courses/",
@@ -47,22 +53,25 @@ def course_id(user_token, category_id):
 
 
 def auth_headers(token):
+    """Generate authorization headers for authenticated requests."""
     return {"Authorization": f"Bearer {token}"}
 
 
 def test_add_comment(user_token, course_id):
+    """Test adding a comment to a course."""
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Great course!"},
         headers=auth_headers(user_token)
     )
-    assert resp.status_code == 200 or resp.status_code == 201
+    assert resp.status_code in (200, 201)
     data = resp.json()
     assert data["content"] == "Great course!"
     assert data["course_id"] == course_id
 
 
 def test_list_comments(user_token, course_id):
+    """Test listing comments for a course."""
     client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Nice!"},
@@ -76,6 +85,7 @@ def test_list_comments(user_token, course_id):
 
 
 def test_edit_comment(user_token, course_id):
+    """Test editing a comment on a course."""
     # Add comment
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -94,6 +104,7 @@ def test_edit_comment(user_token, course_id):
 
 
 def test_delete_comment(user_token, course_id):
+    """Test deleting a comment from a course."""
     # Add comment
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -102,12 +113,15 @@ def test_delete_comment(user_token, course_id):
     )
     comment_id = resp.json()["id"]
     # Delete comment
-    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}", headers=auth_headers(user_token))
+    resp = client\
+        .delete(
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}", headers=auth_headers(user_token))
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Comment deleted successfully"
 
 
 def test_add_comment_unauthenticated(course_id):
+    """Test adding a comment without authentication."""
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
         json={"content": "Unauthenticated comment"}
@@ -117,6 +131,7 @@ def test_add_comment_unauthenticated(course_id):
 
 
 def test_edit_comment_unauthenticated(user_token, course_id):
+    """Test editing a comment without authentication."""
     # Add comment first
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -134,6 +149,7 @@ def test_edit_comment_unauthenticated(user_token, course_id):
 
 
 def test_delete_comment_unauthenticated(user_token, course_id):
+    """Test deleting a comment without authentication."""
     # Add comment first
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -148,6 +164,7 @@ def test_delete_comment_unauthenticated(user_token, course_id):
 
 
 def test_add_comment_nonexistent_course(user_token):
+    """Test adding a comment to a nonexistent course."""
     resp = client.post(
         f"{API_PREFIX}/courses/999999/comments/",
         json={"content": "Comment on nonexistent course"},
@@ -158,6 +175,7 @@ def test_add_comment_nonexistent_course(user_token):
 
 
 def test_edit_nonexistent_comment(user_token, course_id):
+    """Test editing a nonexistent comment."""
     resp = client.put(
         f"{API_PREFIX}/courses/{course_id}/comments/999999",
         json={"content": "Edited nonexistent comment"},
@@ -168,12 +186,16 @@ def test_edit_nonexistent_comment(user_token, course_id):
 
 
 def test_delete_nonexistent_comment(user_token, course_id):
-    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/comments/999999", headers=auth_headers(user_token))
+    """Test deleting a nonexistent comment."""
+    resp = client\
+        .delete(
+        f"{API_PREFIX}/courses/{course_id}/comments/999999", headers=auth_headers(user_token))
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Comment not found"
 
 
 def test_edit_comment_forbidden(user_token, course_id):
+    """Test editing a comment as another user (forbidden)."""
     # Add comment as user
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -184,7 +206,10 @@ def test_edit_comment_forbidden(user_token, course_id):
 
     # Try to edit as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    client\
+        .post(
+        f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"}
+    )
     another_user_resp = client.post(f"{API_PREFIX}/auth/login",
                                     json={"username": another_user_token, "password": "testpass"})
 
@@ -199,6 +224,7 @@ def test_edit_comment_forbidden(user_token, course_id):
 
 
 def test_delete_comment_forbidden(user_token, course_id):
+    """Test deleting a comment as another user (forbidden)."""
     # Add comment as user
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/comments/",
@@ -209,7 +235,10 @@ def test_delete_comment_forbidden(user_token, course_id):
 
     # Try to delete as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    client\
+        .post(
+        f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"}
+    )
     another_user_resp = client.post(f"{API_PREFIX}/auth/login",
                                     json={"username": another_user_token, "password": "testpass"})
 

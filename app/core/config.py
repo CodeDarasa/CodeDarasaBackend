@@ -1,3 +1,4 @@
+"""Configuration settings for the application."""
 import os
 from dotenv import load_dotenv
 
@@ -13,6 +14,7 @@ else:
 
 
 class Settings:
+    """Application settings class that holds configuration values."""
     DATABASE_URL: str = SQLALCHEMY_DATABASE_URL
     SECRET_KEY: str = os.getenv("SECRET_KEY")
 

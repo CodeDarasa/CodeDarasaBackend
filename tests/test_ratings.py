@@ -1,5 +1,7 @@
-import pytest
+"""Test cases for course ratings functionality in the FastAPI application."""
 import uuid
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,20 +12,24 @@ API_PREFIX = "/api/v1"
 
 
 def unique_name(prefix):
+    """Generate a unique name with a given prefix for testing purposes."""
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
 @pytest.fixture
 def user_token():
+    """Fixture to create a user and return an authentication token."""
     username = unique_name("user")
     password = "testpass"
     client.post(f"{API_PREFIX}/auth/register", json={"username": username, "password": password})
-    resp = client.post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
+    resp = client\
+        .post(f"{API_PREFIX}/auth/login", json={"username": username, "password": password})
     return resp.json()["access_token"]
 
 
 @pytest.fixture
 def category_id(user_token):
+    """Fixture to create a category and return its ID."""
     name = unique_name("Category")
     resp = client.post(f"{API_PREFIX}/categories/", json={"name": name},
                        headers={"Authorization": f"Bearer {user_token}"})
@@ -32,6 +38,7 @@ def category_id(user_token):
 
 @pytest.fixture
 def course_id(user_token, category_id):
+    """Fixture to create a course and return its ID."""
     title = unique_name("Course")
     resp = client.post(
         f"{API_PREFIX}/courses/",
@@ -47,22 +54,25 @@ def course_id(user_token, category_id):
 
 
 def auth_headers(token):
+    """Generate authorization headers for authenticated requests."""
     return {"Authorization": f"Bearer {token}"}
 
 
 def test_rate_course(user_token, course_id):
+    """Test rating a course with valid data."""
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 5},
         headers=auth_headers(user_token)
     )
-    assert resp.status_code == 200 or resp.status_code == 201
+    assert resp.status_code in (200, 201)
     data = resp.json()
     assert data["value"] == 5
     assert data["course_id"] == course_id
 
 
 def test_list_course_ratings(user_token, course_id):
+    """Test listing ratings for a course."""
     client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 4},
@@ -76,6 +86,7 @@ def test_list_course_ratings(user_token, course_id):
 
 
 def test_delete_rating(user_token, course_id):
+    """Test deleting a rating for a course."""
     # Add rating
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
@@ -84,12 +95,16 @@ def test_delete_rating(user_token, course_id):
     )
     rating_id = resp.json()["id"]
     # Delete rating
-    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/ratings/{rating_id}", headers=auth_headers(user_token))
+    resp = client\
+        .delete(
+        f"{API_PREFIX}/courses/{course_id}/ratings/{rating_id}", headers=auth_headers(user_token)
+    )
     assert resp.status_code == 200
     assert resp.json()["detail"] == "Rating deleted successfully"
 
 
 def test_rate_course_unauthenticated(course_id):
+    """Test rating a course without authentication."""
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
         json={"value": 5}
@@ -99,6 +114,7 @@ def test_rate_course_unauthenticated(course_id):
 
 
 def test_delete_rating_unauthenticated(user_token, course_id):
+    """Test deleting a rating without authentication."""
     # Add rating first
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
@@ -114,6 +130,7 @@ def test_delete_rating_unauthenticated(user_token, course_id):
 
 
 def test_rate_nonexistent_course(user_token):
+    """Test rating a course that does not exist."""
     resp = client.post(
         f"{API_PREFIX}/courses/999999/ratings/",
         json={"value": 5},
@@ -124,12 +141,17 @@ def test_rate_nonexistent_course(user_token):
 
 
 def test_delete_nonexistent_rating(user_token, course_id):
-    resp = client.delete(f"{API_PREFIX}/courses/{course_id}/ratings/999999", headers=auth_headers(user_token))
+    """Test deleting a rating that does not exist."""
+    resp = client\
+        .delete(
+        f"{API_PREFIX}/courses/{course_id}/ratings/999999", headers=auth_headers(user_token)
+    )
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Rating not found"
 
 
 def test_delete_rating_forbidden(user_token, course_id):
+    """Test deleting a rating as a different user."""
     # Add rating as user
     resp = client.post(
         f"{API_PREFIX}/courses/{course_id}/ratings/",
@@ -140,7 +162,10 @@ def test_delete_rating_forbidden(user_token, course_id):
 
     # Try to delete as another user (forbidden)
     another_user_token = unique_name("another_user")
-    client.post(f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"})
+    client\
+        .post(
+        f"{API_PREFIX}/auth/register", json={"username": another_user_token, "password": "testpass"}
+    )
     another_user_resp = client.post(f"{API_PREFIX}/auth/login",
                                     json={"username": another_user_token, "password": "testpass"})
 

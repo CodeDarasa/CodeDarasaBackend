@@ -1,3 +1,4 @@
+"""Comment management routes for courses in the application."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ router = APIRouter()
 @router.post("/courses/{course_id}/comments/", response_model=CommentOut)
 def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(get_db),
                 current_user=Depends(get_current_user)):
+    """Add a comment to a course."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -24,12 +26,16 @@ def add_comment(course_id: int, comment: CommentCreate, db: Session = Depends(ge
 
 @router.get("/courses/{course_id}/comments/", response_model=list[CommentOut])
 def list_comments(course_id: int, db: Session = Depends(get_db)):
+    """List all comments for a course."""
     return db.query(Comment).filter(Comment.course_id == course_id).all()
 
 
 @router.get("/courses/{course_id}/comments/{comment_id}", response_model=list[CommentOut])
 def get_comment(course_id: int, comment_id: int, db: Session = Depends(get_db)):
-    return db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).all()
+    """Get a specific comment by ID."""
+    return db\
+        .query(Comment).filter(Comment.course_id == course_id)\
+        .filter(Comment.id == comment_id).all()
 
 
 @router.put("/courses/{course_id}/comments/{comment_id}", response_model=CommentOut)
@@ -40,7 +46,11 @@ def edit_comment(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_comment = db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).first()
+    """Edit a comment for a course."""
+    db_comment = db\
+        .query(Comment).filter(Comment.course_id == course_id)\
+        .filter(Comment.id == comment_id)\
+        .first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:
@@ -58,7 +68,12 @@ def delete_comment(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_comment = db.query(Comment).filter(Comment.course_id == course_id).filter(Comment.id == comment_id).first()
+    """Delete a comment for a course."""
+    db_comment = db\
+        .query(Comment)\
+        .filter(Comment.course_id == course_id)\
+        .filter(Comment.id == comment_id)\
+        .first()
     if not db_comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     if db_comment.user_id != current_user.id:

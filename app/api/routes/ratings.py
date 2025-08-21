@@ -1,3 +1,4 @@
+"""Ratings API Routes"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,10 +13,14 @@ router = APIRouter()
 @router.post("/courses/{course_id}/ratings/", response_model=RatingOut)
 def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_db),
                 current_user=Depends(get_current_user)):
+    """Rate a course."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    existing = db.query(Rating).filter(Rating.user_id == current_user.id, Rating.course_id == course_id).first()
+    existing = db\
+        .query(Rating)\
+        .filter(Rating.user_id == current_user.id, Rating.course_id == course_id)\
+        .first()
     if existing:
         existing.value = rating.value
         db.commit()
@@ -30,6 +35,7 @@ def rate_course(course_id: int, rating: RatingCreate, db: Session = Depends(get_
 
 @router.get("/courses/{course_id}/ratings/", response_model=list[RatingOut])
 def course_ratings(course_id: int, db: Session = Depends(get_db)):
+    """List all ratings for a course."""
     return db.query(Rating).filter(Rating.course_id == course_id).all()
 
 
@@ -40,7 +46,12 @@ def delete_rating(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    db_rating = db.query(Rating).filter(Rating.course_id == course_id).filter(Rating.id == rating_id).first()
+    """Delete a rating for a course."""
+    db_rating = db\
+        .query(Rating)\
+        .filter(Rating.course_id == course_id)\
+        .filter(Rating.id == rating_id)\
+        .first()
     if not db_rating:
         raise HTTPException(status_code=404, detail="Rating not found")
     if db_rating.user_id != current_user.id:

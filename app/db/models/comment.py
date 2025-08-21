@@ -1,3 +1,4 @@
+"""Comment model for the application."""
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 
@@ -5,6 +6,7 @@ from app.db.base import Base
 
 
 class Comment(Base):
+    """Represents a comment in the application."""
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True, index=True)
     content = Column(String, nullable=False)
