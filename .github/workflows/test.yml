@@ -8,6 +8,10 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.8", "3.9", "3.10", "3.12" ]
+    env:
+      ENV: test
+      TEST_DATABASE_URL: sqlite:///./test.db
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -23,8 +27,7 @@ jobs:
         env:
           ENV: test
         run: |
-          PYTHONPATH=. pytest
-        #    --cov=app --cov-report=xml --cov-report=term
+          PYTHONPATH=. pytest --cov=app --cov-report=xml --cov-report=term
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
