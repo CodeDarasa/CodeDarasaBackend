@@ -9,6 +9,19 @@ class Course(Base):
     """Represents a course in the application."""
     __tablename__ = "courses"
 
+    def get_id(self):
+        """Returns the ID of the course."""
+        return self.id
+
+    def to_dict(self):
+        """Converts the course to a dictionary representation."""
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "youtube_url": self.youtube_url
+        }
+
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String)

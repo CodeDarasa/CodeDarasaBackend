@@ -1,5 +1,6 @@
 """Configuration settings for the application."""
 import os
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 load_dotenv()  # Loads .env file
@@ -13,6 +14,7 @@ else:
     SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 
+@dataclass
 class Settings:
     """Application settings class that holds configuration values."""
     DATABASE_URL: str = SQLALCHEMY_DATABASE_URL
