@@ -1,4 +1,8 @@
 # Code Darasa Backend
+[![Tests](https://github.com/CodeDarasa/CodeDarasaBackend/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/CodeDarasa/CodeDarasaBackend/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/CodeDarasa/CodeDarasaBackend/branch/main/graph/badge.svg)](https://codecov.io/gh/CodeDarasa/CodeDarasaBackend)
+[![Pylint](https://github.com/CodeDarasa/CodeDarasaBackend/actions/workflows/pylint.yml/badge.svg?branch=main)](https://github.com/CodeDarasa/CodeDarasaBackend/actions/workflows/pylint.yml)
+![Python Versions](https://img.shields.io/badge/python-3.11%20|%203.12-blue?logo=python)
 
 Code Darasa is an edtech platform for sharing programming tutorials and full video-based courses. This backend is built
 using **FastAPI** and **PostgreSQL**, with **SQLAlchemy** for ORM and **Alembic** for migrations.
