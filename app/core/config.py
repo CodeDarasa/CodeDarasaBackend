@@ -18,7 +18,7 @@ else:
 class Settings:
     """Application settings class that holds configuration values."""
     database_url: str = SQLALCHEMY_DATABASE_URL
-    secret_key: str = os.getenv("SECRET_KEY")
+    secret_key: str = os.getenv("SECRET_KEY", "test-key")
 
 
 settings = Settings()
