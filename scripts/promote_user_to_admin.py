@@ -1,3 +1,4 @@
+"""Script to promote a user to admin role in the database."""
 from app.db.session import SessionLocal
 from app.db.models.user import User, UserRole
 db = SessionLocal()
