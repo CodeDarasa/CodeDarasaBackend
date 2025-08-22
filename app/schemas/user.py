@@ -1,6 +1,13 @@
 """User schemas for Pydantic validation and serialization."""
 from typing import Optional
+from enum import Enum
 from pydantic import BaseModel
+
+
+class UserRole(str, Enum):
+    """Enumeration for user roles."""
+    ADMIN = "ADMIN"
+    USER = "USER"
 
 
 class UserBase(BaseModel):
@@ -19,6 +26,7 @@ class UserOut(UserBase):
     """Schema for outputting User data."""
     id: int
     username: str
+    role: UserRole
 
     model_config = {
         "from_attributes": True
