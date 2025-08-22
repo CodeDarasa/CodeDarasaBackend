@@ -28,6 +28,7 @@ class CourseBrief(BaseModel):
     title: str
 
     class Config:
+        """Configuration for CourseBrief schema."""
         orm_mode = True
 
 
