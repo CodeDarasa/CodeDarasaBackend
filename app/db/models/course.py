@@ -26,7 +26,7 @@ class Course(Base):
     title = Column(String, index=True)
     description = Column(String)
     youtube_url = Column(String)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     category = relationship("Category", back_populates="courses")
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     creator = relationship("User", back_populates="courses")

@@ -2,11 +2,12 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
 from app.db.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryOut
+from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryOut
+from app.db.models.course import Course
 
 router = APIRouter()
 
@@ -35,7 +36,7 @@ Raises:
     existing = db.query(Category).filter(Category.name == category.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Category with this name already exists.")
-    db_category = Category(name=category.name)
+    db_category = Category(name=category.name, description=category.description)
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
@@ -53,7 +54,10 @@ def list_categories(db: Session = Depends(get_db)):
 def get_category(category_id: int, db: Session = Depends(get_db)):
     """Get a category by ID."""
 
-    category = db.query(Category).filter(Category.id == category_id).first()
+    category = db\
+        .query(Category)\
+        .options(joinedload(Category.courses))\
+        .filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
@@ -62,26 +66,60 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 @router.put("/{category_id}", response_model=CategoryOut)
 def update_category(
     category_id: int,
-    category: CategoryCreate,
+    category: CategoryUpdate,
     db: Session = Depends(get_db),
     _=Depends(get_current_user)
 ):
-    """Update a category by ID."""
-
+    """Update a category's name/description, and add/remove courses."""
+    # Check if the category exists
     db_category = db.query(Category).filter(Category.id == category_id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
-    # Check for duplicate name (excluding this category)
-    existing = db \
-        .query(Category) \
-        .filter(Category.name == category.name, Category.id != category_id) \
-        .first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Category with this name already exists.")
-    db_category.name = category.name
+
+    # Update fields
+    if category.name is not None:
+        # Check for duplicate name (excluding this category)
+        existing = (
+            db.query(Category)
+            .filter(Category.name == category.name, Category.id != category_id)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Category with this name already exists.")
+        db_category.name = category.name
+
+    if category.description is not None:
+        db_category.description = category.description
+
+    # Add courses to this category
+    if category.add_course_ids:
+        courses = db.query(Course).filter(Course.id.in_(category.add_course_ids)).all()
+        found_ids = {c.id for c in courses}
+        missing = set(category.add_course_ids) - found_ids
+        if missing:
+            raise HTTPException(status_code=404, detail=f"Courses not found: {sorted(missing)}")
+        for c in courses:
+            c.category_id = db_category.id
+
+    # Remove courses from this category (sets category_id to None)
+    if category.remove_course_ids:
+        courses = (
+            db.query(Course)
+            .filter(Course.id.in_(category.remove_course_ids), Course.category_id == db_category.id)
+            .all()
+        )
+        for c in courses:
+            c.category_id = None  # requires nullable=True on Course.category_id
+
     db.commit()
     db.refresh(db_category)
-    return db_category
+    # Return with courses included
+    return (
+        db.query(Category)
+        .options(joinedload(Category.courses))
+        .filter(Category.id == category_id)
+        .first()
+    )
 
 
 @router.delete("/{category_id}")

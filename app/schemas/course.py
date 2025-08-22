@@ -22,6 +22,15 @@ class CourseUpdate(CourseBase):
     """Schema for updating an existing Course."""
 
 
+class CourseBrief(BaseModel):
+    """Brief schema for Course, used in lists or summaries."""
+    id: int
+    title: str
+
+    class Config:
+        orm_mode = True
+
+
 class CourseOut(CourseBase):
     """Schema for outputting Course data."""
     id: int
