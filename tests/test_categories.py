@@ -21,6 +21,11 @@ def unique_description(prefix="Description"):
     return f"{prefix} {uuid.uuid4().hex[:8]}"
 
 
+def unique_youtube_url():
+    """Generate a unique YouTube URL for testing purposes."""
+    return f"https://youtu.be/{uuid.uuid4().hex[:11]}"
+
+
 @pytest.fixture
 def user_token():
     """Fixture to create a user and return an authentication token."""
@@ -161,6 +166,26 @@ def test_get_single_category(user_token):
 def test_get_nonexistent_category():
     """Test retrieving a category that does not exist."""
     response = client.get(f"{API_PREFIX}/categories/999999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Category not found"
+
+
+def test_create_course_with_nonexistent_category(user_token):
+    """Test creating a course with a non-existent category should return 404."""
+    title = unique_name("CourseTitle")
+    description = unique_description("Course description")
+    youtube_url = unique_youtube_url()
+    payload = {
+        "title": title,
+        "description": description,
+        "youtube_url": youtube_url,
+        "category_id": 999999,
+    }
+    response = client.post(
+        f"{API_PREFIX}/courses/",
+        json=payload,
+        headers=auth_headers(user_token),
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Category not found"
 

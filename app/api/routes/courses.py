@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.db.models.category import Category
 from app.db.models.course import Course
 from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
 
@@ -18,6 +19,12 @@ def create_new_course(
     current_user=Depends(get_current_user)
 ):
     """Create a new course."""
+    # Validate category if provided
+    if getattr(course, "category_id", None) is not None:
+        category_exists = db.query(Category).filter(Category.id == course.category_id).first()
+        if not category_exists:
+            raise HTTPException(status_code=404, detail="Category not found")
+
     # Check for duplicate by title and youtube_url
     existing = db.query(list_courses.__globals__['Course']).filter_by(
         title=course.title,
@@ -94,6 +101,14 @@ def update_course(
             status_code=400,
             detail="Another course with this title and YouTube URL already exists."
         )
+
+    # Validate and apply category change if provided
+    new_category_id = getattr(course_update, "category_id", None)
+    if new_category_id is not None:
+        category_exists = db.query(Category).filter(Category.id == new_category_id).first()
+        if not category_exists:
+            raise HTTPException(status_code=404, detail="Category not found")
+        db_course.category_id = new_category_id
 
     db_course.title = course_update.title
     db_course.description = course_update.description
