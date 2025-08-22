@@ -1,5 +1,6 @@
 """User model for the application."""
 from enum import Enum as PyEnum
+
 from sqlalchemy import Column, Integer, String, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
@@ -10,7 +11,7 @@ class UserRole(str, PyEnum):
     """Enumeration for user roles."""
     ADMIN = "ADMIN"
     USER = "USER"
-    
+
 
 class User(Base):
     """Represents a user in the application."""
