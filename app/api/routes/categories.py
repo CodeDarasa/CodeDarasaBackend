@@ -109,8 +109,7 @@ def update_category(
             .all()
         )
         for c in courses:
-            c.category_id = None  # requires nullable=True on Course.category_id
-
+            c.category_id = None
     db.commit()
     db.refresh(db_category)
     # Return with courses included
@@ -126,7 +125,7 @@ def update_category(
 def delete_category(
     category_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)  # <-- Require authentication
+    _=Depends(get_current_user)
 ):
     """Delete a category by ID."""
 
