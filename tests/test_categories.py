@@ -218,3 +218,104 @@ def test_delete_nonexistent_category(user_token):
     """Test deleting a category that does not exist."""
     response = client.delete(f"{API_PREFIX}/categories/999999", headers=auth_headers(user_token))
     assert response.status_code == 404
+
+
+def test_list_categories(user_token):
+    """Test listing all categories."""
+    # Create two categories
+    name1 = unique_name("ListCat1")
+    name2 = unique_name("ListCat2")
+    client.post(f"{API_PREFIX}/categories/", json={"name": name1}, headers=auth_headers(user_token))
+    client.post(f"{API_PREFIX}/categories/", json={"name": name2}, headers=auth_headers(user_token))
+    response = client.get(f"{API_PREFIX}/categories/")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    names = [cat["name"] for cat in data]
+    assert name1 in names
+    assert name2 in names
+
+
+def test_create_category_with_courses(user_token):
+    """Test creating a category and assigning courses to it."""
+    # Create two courses
+    course_payload1 = {
+        "title": unique_name("CourseA"),
+        "description": unique_description("CourseA desc"),
+        "youtube_url": unique_youtube_url(),
+    }
+    course_payload2 = {
+        "title": unique_name("CourseB"),
+        "description": unique_description("CourseB desc"),
+        "youtube_url": unique_youtube_url(),
+    }
+    resp1 = client.post(f"{API_PREFIX}/courses/", json=course_payload1, headers=auth_headers(user_token))
+    resp2 = client.post(f"{API_PREFIX}/courses/", json=course_payload2, headers=auth_headers(user_token))
+    course_id1 = resp1.json()["id"]
+    course_id2 = resp2.json()["id"]
+
+    # Create category with these courses
+    cat_name = unique_name("CatWithCourses")
+    response = client.post(
+        f"{API_PREFIX}/categories/",
+        json={"name": cat_name, "course_ids": [course_id1, course_id2]},
+        headers=auth_headers(user_token)
+    )
+    assert response.status_code in (200, 201)
+    data = response.json()
+    assert data["name"] == cat_name
+    # The category should list the courses
+    course_ids_in_cat = [c["id"] for c in data.get("courses", [])]
+    assert course_id1 in course_ids_in_cat
+    assert course_id2 in course_ids_in_cat
+
+
+def test_update_category_add_and_remove_courses(user_token):
+    """Test adding and removing courses from a category during update."""
+    # Create a category
+    cat_name = unique_name("EditCat")
+    cat_resp = client.post(
+        f"{API_PREFIX}/categories/",
+        json={"name": cat_name},
+        headers=auth_headers(user_token)
+    )
+    category_id = cat_resp.json()["id"]
+
+    # Create two courses
+    course_payload1 = {
+        "title": unique_name("EditCourseA"),
+        "description": unique_description("EditCourseA desc"),
+        "youtube_url": unique_youtube_url(),
+    }
+    course_payload2 = {
+        "title": unique_name("EditCourseB"),
+        "description": unique_description("EditCourseB desc"),
+        "youtube_url": unique_youtube_url(),
+    }
+    resp1 = client.post(f"{API_PREFIX}/courses/", json=course_payload1, headers=auth_headers(user_token))
+    resp2 = client.post(f"{API_PREFIX}/courses/", json=course_payload2, headers=auth_headers(user_token))
+    course_id1 = resp1.json()["id"]
+    course_id2 = resp2.json()["id"]
+
+    # Add both courses to the category
+    response = client.put(
+        f"{API_PREFIX}/categories/{category_id}",
+        json={"add_course_ids": [course_id1, course_id2]},
+        headers=auth_headers(user_token)
+    )
+    assert response.status_code == 200
+    data = response.json()
+    course_ids_in_cat = [c["id"] for c in data.get("courses", [])]
+    assert course_id1 in course_ids_in_cat
+    assert course_id2 in course_ids_in_cat
+
+    # Remove one course from the category
+    response = client.put(
+        f"{API_PREFIX}/categories/{category_id}",
+        json={"remove_course_ids": [course_id1]},
+        headers=auth_headers(user_token)
+    )
+    assert response.status_code == 200
+    data = response.json()
+    course_ids_in_cat = [c["id"] for c in data.get("courses", [])]
+    assert course_id1 not in course_ids_in_cat
