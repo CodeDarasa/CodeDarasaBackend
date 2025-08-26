@@ -218,3 +218,17 @@ def test_get_current_user_user_not_found(monkeypatch):
         get_current_user(token="validtoken", db=DummyDB())
     assert excinfo.value.status_code == 401
     assert "Could not validate credentials" in str(excinfo.value.detail)
+
+
+def test_get_current_user_username_none(monkeypatch):
+    """Test get_current_user raises HTTPException if username is None in token."""
+    class DummyDB:
+        def query(self, *a, **kw): return self
+        def filter(self, *a, **kw): return self
+        def first(self): return None
+    # Patch jwt.decode to return a payload with no 'sub'
+    monkeypatch.setattr("app.api.deps.jwt.decode", lambda *a, **kw: {})
+    with pytest.raises(HTTPException) as excinfo:
+        get_current_user(token="validtoken", db=DummyDB())
+    assert excinfo.value.status_code == 401
+    assert "Could not validate credentials" in str(excinfo.value.detail)
