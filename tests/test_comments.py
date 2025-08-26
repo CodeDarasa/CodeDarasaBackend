@@ -249,3 +249,25 @@ def test_delete_comment_forbidden(user_token, course_id):
 
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Not allowed to delete this comment"
+
+
+def test_get_comment(user_token, course_id):
+    """Test retrieving a specific comment by ID."""
+    # Add a comment first
+    comment_content = "This is a test comment"
+    add_resp = client.post(
+        f"{API_PREFIX}/courses/{course_id}/comments/",
+        json={"content": comment_content},
+        headers=auth_headers(user_token)
+    )
+    assert add_resp.status_code == 200
+    comment_id = add_resp.json()["id"]
+
+    # Retrieve the comment
+    get_resp = client.get(
+        f"{API_PREFIX}/courses/{course_id}/comments/{comment_id}"
+    )
+    assert get_resp.status_code == 200
+    data = get_resp.json()
+    assert isinstance(data, list)
+    assert any(comment["id"] == comment_id and comment["content"] == comment_content for comment in data)
