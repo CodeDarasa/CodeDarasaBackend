@@ -176,3 +176,27 @@ def test_delete_rating_forbidden(user_token, course_id):
 
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Not allowed to delete this rating"
+
+
+def test_rate_course_update_existing(user_token, course_id):
+    """Test rating a course that you have already rated updates the rating."""
+    # First rating
+    resp1 = client.post(
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
+        json={"value": 3},
+        headers=auth_headers(user_token)
+    )
+    assert resp1.status_code in (200, 201)
+    data1 = resp1.json()
+    assert data1["value"] == 3
+
+    # Rate again with a different value
+    resp2 = client.post(
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
+        json={"value": 5},
+        headers=auth_headers(user_token)
+    )
+    assert resp2.status_code in (200, 201)
+    data2 = resp2.json()
+    assert data2["value"] == 5
+    assert data2["id"] == data1["id"]  # Should update the same rating, not create a new one
