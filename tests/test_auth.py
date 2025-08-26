@@ -4,6 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.api.deps import require_admin, get_current_user
+from app.db.models.user import User, UserRole
+from fastapi import HTTPException, status
 
 client = TestClient(app)
 
@@ -166,3 +169,52 @@ def test_get_user_ratings(user_token, course_id):
     assert resp.status_code in (200, 201)
     data = resp.json()
     assert len(data) >= 1
+
+
+def test_require_admin_allows_admin(monkeypatch):
+    """Test require_admin allows admin users."""
+    class DummyUser:
+        role = UserRole.ADMIN
+    admin_user = DummyUser()
+    assert require_admin(admin_user) == admin_user
+
+
+def test_require_admin_forbids_non_admin(monkeypatch):
+    """Test require_admin raises HTTPException for non-admin users."""
+    class DummyUser:
+        role = UserRole.USER
+    user = DummyUser()
+    try:
+        require_admin(user)
+        assert False, "Should have raised HTTPException"
+    except HTTPException as exc:
+        assert exc.status_code == status.HTTP_403_FORBIDDEN
+        assert "Admin privileges required" in exc.detail
+
+
+def test_get_current_user_invalid_token(monkeypatch):
+    """Test get_current_user raises HTTPException for invalid token."""
+    from jose import JWTError
+    class DummyDB:
+        def query(self, *a, **kw): return self
+        def filter(self, *a, **kw): return self
+        def first(self): return None
+    # Patch jwt.decode to raise JWTError
+    monkeypatch.setattr("app.api.deps.jwt.decode", lambda *a, **kw: (_ for _ in ()).throw(JWTError()))
+    with pytest.raises(HTTPException) as excinfo:
+        get_current_user(token="badtoken", db=DummyDB())
+    assert excinfo.value.status_code == 401
+
+
+def test_get_current_user_user_not_found(monkeypatch):
+    """Test get_current_user raises HTTPException if user not found."""
+    class DummyDB:
+        def query(self, *a, **kw): return self
+        def filter(self, *a, **kw): return self
+        def first(self): return None
+    # Patch jwt.decode to return a valid payload
+    monkeypatch.setattr("app.api.deps.jwt.decode", lambda *a, **kw: {"sub": "nouser"})
+    with pytest.raises(HTTPException) as excinfo:
+        get_current_user(token="validtoken", db=DummyDB())
+    assert excinfo.value.status_code == 401
+    assert "Could not validate credentials" in str(excinfo.value.detail)
