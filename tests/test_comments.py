@@ -1,9 +1,13 @@
 """Test cases for course comments API endpoints."""
 import uuid
+from datetime import datetime, timezone
+
 import pytest
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.db.models.comment import Comment
 
 client = TestClient(app)
 
@@ -271,3 +275,28 @@ def test_get_comment(user_token, course_id):
     data = get_resp.json()
     assert isinstance(data, list)
     assert any(comment["id"] == comment_id and comment["content"] == comment_content for comment in data)
+
+
+def test_comment_get_id_and_to_dict():
+    """Test the get_id and to_dict methods of the Comment model."""
+
+    # Create a Comment instance
+    now = datetime.now(timezone.utc)
+    comment = Comment(
+        id=42,
+        content="Test comment",
+        created_at=now,
+        user_id=7,
+        course_id=3
+    )
+
+    # Test get_id
+    assert comment.get_id() == 42
+
+    # Test to_dict
+    d = comment.to_dict()
+    assert isinstance(d, dict)
+    assert d["id"] == 42
+    assert d["content"] == "Test comment"
+    assert d["created_at"] == now.isoformat()
+    assert d["user_id"] == 7
