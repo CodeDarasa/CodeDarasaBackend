@@ -1,12 +1,12 @@
 """Test cases for user authentication and profile management in a FastAPI application."""
 import uuid
 import pytest
+from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.api.deps import require_admin, get_current_user
-from app.db.models.user import User, UserRole
-from fastapi import HTTPException, status
+from app.db.models.user import UserRole
 
 client = TestClient(app)
 
@@ -232,3 +232,44 @@ def test_get_current_user_username_none(monkeypatch):
         get_current_user(token="validtoken", db=DummyDB())
     assert excinfo.value.status_code == 401
     assert "Could not validate credentials" in str(excinfo.value.detail)
+
+
+def test_list_all_users():
+    """Test listing all users as an admin user."""
+    # Register an admin user
+    admin_username = unique_username()
+    admin_password = "adminpass"
+    client.post(
+        f"{API_PREFIX}/auth/register",
+        json={"username": admin_username, "password": admin_password}
+    )
+
+    # Promote the user to admin in the DB
+    from app.db.session import SessionLocal
+    from app.db.models.user import User, UserRole
+    db = SessionLocal()
+    admin_user = db.query(User).filter_by(username=admin_username).first()
+    admin_user.role = UserRole.ADMIN
+    db.commit()
+    db.close()
+
+    # Login as admin
+    resp = client.post(
+        f"{API_PREFIX}/auth/login",
+        json={"username": admin_username, "password": admin_password}
+    )
+    admin_token = resp.json()["access_token"]
+
+    # Create another regular user
+    username2 = unique_username()
+    password2 = "testpass2"
+    client.post(f"{API_PREFIX}/auth/register", json={"username": username2, "password": password2})
+
+    # List users as admin
+    resp = client.get(f"{API_PREFIX}/users/", headers=auth_headers(admin_token))
+    assert resp.status_code == 200
+    users = resp.json()
+    assert isinstance(users, list)
+    usernames = [u["username"] for u in users]
+    assert username2 in usernames
+    assert admin_username in usernames
