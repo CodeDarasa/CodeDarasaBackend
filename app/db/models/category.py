@@ -14,8 +14,13 @@ class Category(Base):
         return self.id
 
     def to_dict(self):
-        """Converts the category to a dictionary representation."""
-        return {"id": self.id, "name": self.name}
+        """Converts the category to a dictionary representation with all details."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "courses": [course.id for course in self.courses] if self.courses else []
+        }
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)

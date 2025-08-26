@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.db.models.category import Category
 
 client = TestClient(app)
 
@@ -353,3 +354,22 @@ def test_update_category_add_nonexistent_courses(user_token):
     )
     assert response.status_code == 404
     assert "Courses not found" in response.json()["detail"]
+
+
+def test_category_get_id_and_to_dict():
+    """Test the get_id and to_dict methods of the Category model."""
+    # Create a Category instance
+    category = Category(id=123, name="TestCat", description="desc")
+
+    # Test get_id
+    assert category.get_id() == 123
+
+    # Test to_dict
+    d = category.to_dict()
+    assert isinstance(d, dict)
+    assert d["id"] == 123
+    assert d["name"] == "TestCat"
+    assert d["description"] == "desc"
+    # If your Category model includes other fields (e.g., courses), check them as well
+    if "courses" in d:
+        assert isinstance(d["courses"], list)
