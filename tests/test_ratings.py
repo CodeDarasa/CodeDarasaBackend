@@ -234,3 +234,25 @@ def test_get_all_ratings_for_user(user_token, course_id):
     ratings = resp.json()
     assert isinstance(ratings, list)
     assert any(r["course_id"] == course_id for r in ratings)
+
+
+def test_rating_get_id_and_to_dict():
+    """Test the get_id and to_dict methods of the Rating model."""
+    from app.db.models.rating import Rating
+
+    rating = Rating(
+        id=55,
+        value=4,
+        user_id=10,
+        course_id=20
+    )
+
+    # Test get_id
+    assert rating.get_id() == 55
+
+    # Test to_dict
+    d = rating.to_dict()
+    assert isinstance(d, dict)
+    assert d["id"] == 55
+    assert d["value"] == 4
+    assert d["user_id"] == 10
