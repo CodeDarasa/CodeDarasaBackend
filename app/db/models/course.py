@@ -14,12 +14,18 @@ class Course(Base):
         return self.id
 
     def to_dict(self):
-        """Converts the course to a dictionary representation."""
+        """Converts the course to a dictionary representation with all details."""
         return {
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "youtube_url": self.youtube_url
+            "youtube_url": self.youtube_url,
+            "category_id": self.category_id,
+            "category": self.category.to_dict() if self.category else None,
+            "creator_id": self.creator_id,
+            "creator": self.creator.to_dict() if self.creator else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
     id = Column(Integer, primary_key=True, index=True)

@@ -1,9 +1,14 @@
 """Test cases for course management API endpoints."""
+import time
 import uuid
+from datetime import datetime, timezone
+
 import pytest
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.db.models.course import Course
 
 client = TestClient(app)
 
@@ -400,3 +405,55 @@ def test_list_courses_with_search(user_token, category_id):
     assert resp.status_code == 200
     data = resp.json()
     assert any(course["title"] == unique_title for course in data)
+
+
+def test_course_get_id_and_to_dict():
+    """Test the get_id and to_dict methods of the Course model."""
+    from datetime import datetime, timezone
+    from app.db.models.course import Course
+    from app.db.models.category import Category
+    from app.db.models.user import User
+
+    now = datetime.now(timezone.utc)
+    # Related objects (not persisted, just constructed)
+    category = Category(id=5, name="Cat5")
+    creator = User(id=7, username="creator7", hashed_password="x")
+
+    course = Course(
+        id=101,
+        title="Test Course",
+        description="A test course",
+        youtube_url="https://youtube.com/test",
+        category_id=5,
+        creator_id=7,
+        created_at=now,
+        updated_at=now,
+    )
+    course.category = category
+    course.creator = creator
+
+    # Test get_id
+    assert course.get_id() == 101
+
+    # Test to_dict
+    d = course.to_dict()
+    assert isinstance(d, dict)
+    assert d["id"] == 101
+    assert d["title"] == "Test Course"
+    assert d["description"] == "A test course"
+    assert d["youtube_url"] == "https://youtube.com/test"
+    assert d["category_id"] == 5
+    assert isinstance(d["category"], dict)
+    assert d["category"]["id"] == 5
+    assert d["creator_id"] == 7
+    assert isinstance(d["creator"], dict)
+    assert d["creator"]["id"] == 7
+    assert d["created_at"] == now.isoformat()
+    assert d["updated_at"] == now.isoformat()
+
+    # Also test with no related objects
+    course.category = None
+    course.creator = None
+    d = course.to_dict()
+    assert d["category"] is None
+    assert d["creator"] is None
