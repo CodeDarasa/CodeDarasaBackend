@@ -89,6 +89,22 @@ def test_create_course_missing_fields(user_token, category_id):
     assert resp.status_code == 422
 
 
+def test_create_duplicate_course(user_token, category_id):
+    """Test creating a duplicate course (same title and youtube_url)."""
+    title = unique_name("DupCourse")
+    payload = {
+        "title": title,
+        "description": "desc",
+        "youtube_url": "https://youtube.com/dup",
+        "category_id": category_id
+    }
+    resp1 = client.post(f"{API_PREFIX}/courses/", json=payload, headers=auth_headers(user_token))
+    assert resp1.status_code in (200, 201)
+    resp2 = client.post(f"{API_PREFIX}/courses/", json=payload, headers=auth_headers(user_token))
+    assert resp2.status_code == 400
+    assert "already exists" in resp2.json()["detail"]
+
+
 def test_get_courses():
     """Test retrieving the list of courses."""
     resp = client.get(f"{API_PREFIX}/courses/")
@@ -183,6 +199,95 @@ def test_update_course_unauthenticated(user_token, category_id):
     assert resp.status_code == 401
 
 
+def test_update_nonexistent_course(user_token, category_id):
+    """Test updating a course that does not exist."""
+    resp = client.put(
+        f"{API_PREFIX}/courses/999999",
+        json={
+            "title": "DoesNotExist",
+            "description": "desc",
+            "youtube_url": "https://youtube.com/doesnotexist",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+
+
+def test_update_course_to_duplicate(user_token, category_id):
+    """Test updating a course to match another existing course's details."""
+    # Create two courses
+    title1 = unique_name("DupA")
+    title2 = unique_name("DupB")
+    url1 = "https://youtube.com/dupa"
+    url2 = "https://youtube.com/dupb"
+    resp1 = client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": title1,
+            "description": "desc1",
+            "youtube_url": url1,
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    resp2 = client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": title2,
+            "description": "desc2",
+            "youtube_url": url2,
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    course_id2 = resp2.json()["id"]
+    # Try to update course2 to have same title and url as course1
+    resp = client.put(
+        f"{API_PREFIX}/courses/{course_id2}",
+        json={
+            "title": title1,
+            "description": "desc1",
+            "youtube_url": url1,
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code == 400
+    assert "already exists" in resp.json()["detail"]
+
+
+def test_update_course_to_nonexistent_category(user_token, category_id):
+    """Test updating a course to a category that does not exist."""
+    # Create a course
+    title = unique_name("ToBadCat")
+    resp = client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/badcat",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    course_id = resp.json()["id"]
+    # Try to update to a non-existent category
+    resp = client.put(
+        f"{API_PREFIX}/courses/{course_id}",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/badcat",
+            "category_id": 999999
+        },
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code == 404
+    assert "category not found" in resp.json()["detail"].lower()
+
+
 def test_delete_course(user_token, category_id):
     """Test deleting a course."""
     # Create course
@@ -223,6 +328,40 @@ def test_delete_course_unauthenticated(user_token, category_id):
     assert resp.status_code == 401
 
 
+def test_delete_nonexistent_course(user_token):
+    """Test deleting a course that does not exist."""
+    resp = client.delete(f"{API_PREFIX}/courses/999999", headers=auth_headers(user_token))
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+
+
+def test_delete_course_not_authorized(user_token, category_id):
+    """Test deleting a course you are not authorized to delete."""
+    # User 1 creates a course
+    title = unique_name("NotYourCourse")
+    resp = client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/notyourcourse",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    course_id = resp.json()["id"]
+    # Register a different user
+    username2 = unique_name("user2")
+    password2 = "testpass2"
+    client.post(f"{API_PREFIX}/auth/register", json={"username": username2, "password": password2})
+    resp2 = client.post(f"{API_PREFIX}/auth/login", json={"username": username2, "password": password2})
+    token2 = resp2.json()["access_token"]
+    # Try to delete the course as the other user
+    resp = client.delete(f"{API_PREFIX}/courses/{course_id}", headers=auth_headers(token2))
+    assert resp.status_code == 403
+    assert "not authorized" in resp.json()["detail"].lower()
+
+
 def test_filter_courses_by_category(user_token, category_id):
     """Test filtering courses by category."""
     # Create a course in this category
@@ -242,3 +381,22 @@ def test_filter_courses_by_category(user_token, category_id):
     assert resp.status_code == 200
     data = resp.json()
     assert any(course["category_id"] == category_id for course in data)
+
+
+def test_list_courses_with_search(user_token, category_id):
+    """Test listing courses using a search term."""
+    unique_title = unique_name("SearchableCourse")
+    client.post(
+        f"{API_PREFIX}/courses/",
+        json={
+            "title": unique_title,
+            "description": "desc",
+            "youtube_url": "https://youtube.com/searchable",
+            "category_id": category_id
+        },
+        headers=auth_headers(user_token)
+    )
+    resp = client.get(f"{API_PREFIX}/courses/?search={unique_title}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert any(course["title"] == unique_title for course in data)
