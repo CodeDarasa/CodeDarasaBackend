@@ -200,3 +200,37 @@ def test_rate_course_update_existing(user_token, course_id):
     data2 = resp2.json()
     assert data2["value"] == 5
     assert data2["id"] == data1["id"]  # Should update the same rating, not create a new one
+
+
+def test_get_single_rating(user_token, course_id):
+    """Test retrieving a specific rating by ID."""
+    # Rate the course
+    resp = client.post(
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
+        json={"value": 4},
+        headers=auth_headers(user_token)
+    )
+    assert resp.status_code in (200, 201)
+    rating_id = resp.json()["id"]
+
+    # Retrieve all ratings for the course and check the specific rating is present
+    resp_all = client.get(f"{API_PREFIX}/courses/{course_id}/ratings/")
+    assert resp_all.status_code == 200
+    ratings = resp_all.json()
+    assert any(r["id"] == rating_id for r in ratings)
+
+
+def test_get_all_ratings_for_user(user_token, course_id):
+    """Test retrieving all ratings made by the current user."""
+    # Rate the course
+    client.post(
+        f"{API_PREFIX}/courses/{course_id}/ratings/",
+        json={"value": 5},
+        headers=auth_headers(user_token)
+    )
+    # Retrieve all ratings for the user
+    resp = client.get(f"{API_PREFIX}/users/me/ratings/", headers=auth_headers(user_token))
+    assert resp.status_code == 200
+    ratings = resp.json()
+    assert isinstance(ratings, list)
+    assert any(r["course_id"] == course_id for r in ratings)
