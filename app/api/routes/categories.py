@@ -18,7 +18,7 @@ def create_category(
     db: Session = Depends(get_db),
     _=Depends(get_current_user)
 ):
-    """Create a new category.
+    """Create a new category, optionally assigning courses to it.
 
 This endpoint creates a new category with the provided name. It checks for duplicate category names
 and raises an HTTP 400 error if a category with the same name already exists.
@@ -40,6 +40,19 @@ Raises:
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
+
+    # Assign courses if provided
+    if category.course_ids:
+        courses = db.query(Course).filter(Course.id.in_(category.course_ids)).all()
+        found_ids = {c.id for c in courses}
+        missing = set(category.course_ids) - found_ids
+        if missing:
+            raise HTTPException(status_code=404, detail=f"Courses not found: {sorted(missing)}")
+        for c in courses:
+            c.category_id = db_category.id
+        db.commit()
+        db.refresh(db_category)
+
     return db_category
 
 

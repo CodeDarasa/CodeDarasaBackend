@@ -11,8 +11,11 @@ class CategoryBase(BaseModel):
     description: Optional[str] = None
 
 
-class CategoryCreate(CategoryBase):
+class CategoryCreate(BaseModel):
     """Schema for creating a new Category."""
+    name: str
+    description: Optional[str] = None
+    course_ids: Optional[List[int]] = []
 
 
 class CategoryUpdate(BaseModel):
