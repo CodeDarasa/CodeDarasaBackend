@@ -319,3 +319,37 @@ def test_update_category_add_and_remove_courses(user_token):
     data = response.json()
     course_ids_in_cat = [c["id"] for c in data.get("courses", [])]
     assert course_id1 not in course_ids_in_cat
+
+
+def test_create_category_with_nonexistent_courses(user_token):
+    """Test creating a category with course_ids that do not exist should return 404."""
+    cat_name = unique_name("CatWithBadCourses")
+    # Use course IDs that are very unlikely to exist
+    response = client.post(
+        f"{API_PREFIX}/categories/",
+        json={"name": cat_name, "course_ids": [999999, 888888]},
+        headers=auth_headers(user_token)
+    )
+    assert response.status_code == 404
+    assert "Courses not found" in response.json()["detail"]
+
+
+def test_update_category_add_nonexistent_courses(user_token):
+    """Test updating a category by adding course_ids that do not exist should return 404."""
+    # Create a category
+    cat_name = unique_name("EditCatBadCourse")
+    cat_resp = client.post(
+        f"{API_PREFIX}/categories/",
+        json={"name": cat_name},
+        headers=auth_headers(user_token)
+    )
+    category_id = cat_resp.json()["id"]
+
+    # Try to add non-existent courses
+    response = client.put(
+        f"{API_PREFIX}/categories/{category_id}",
+        json={"add_course_ids": [123456, 654321]},
+        headers=auth_headers(user_token)
+    )
+    assert response.status_code == 404
+    assert "Courses not found" in response.json()["detail"]
