@@ -256,3 +256,10 @@ def test_rating_get_id_and_to_dict():
     assert d["id"] == 55
     assert d["value"] == 4
     assert d["user_id"] == 10
+
+
+def test_userrole_get_id():
+    """Test the get_id method of the User model."""
+    from app.db.models.user import User
+    user = User(id=123, username="testuser")
+    assert user.get_id() == 123
