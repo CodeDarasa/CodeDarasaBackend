@@ -10,7 +10,7 @@ from app.schemas.user import UserOut
 class CourseBase(BaseModel):
     """Base schema for Course."""
     title: str
-    description: str
+    description: Optional[str] = None
     youtube_url: str
     category_id: Optional[int] = None
 
