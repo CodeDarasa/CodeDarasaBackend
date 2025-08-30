@@ -1,4 +1,5 @@
 """Schemas for Course"""
+import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ class CourseOut(CourseBase):
     id: int
     category_id: Optional[int] = None
     creator: UserOut
+    created_at: datetime.datetime
 
     model_config = {
         "from_attributes": True
