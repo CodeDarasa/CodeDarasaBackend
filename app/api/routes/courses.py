@@ -1,5 +1,5 @@
 """Course Management API"""
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.db.models.category import Category
 from app.db.models.course import Course
-from app.schemas.course import CourseCreate, CourseOut, CourseUpdate
+from app.schemas.course import CourseCreate, CourseListOut, CourseOut, CourseUpdate
 
 router = APIRouter()
 
@@ -50,7 +50,7 @@ def create_new_course(
     return db_course
 
 
-@router.get("/", response_model=List[CourseOut])
+@router.get("/", response_model=CourseListOut)
 def list_courses(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),
@@ -64,8 +64,9 @@ def list_courses(
         query = query.filter(Course.title.ilike(f"%{search}%"))
     if category_id:
         query = query.filter(Course.category_id == category_id)
+    total = query.count()
     courses = query.offset((page - 1) * page_size).limit(page_size).all()
-    return courses
+    return {"items": courses, "total": total}
 
 
 @router.get("/{course_id}", response_model=CourseOut)

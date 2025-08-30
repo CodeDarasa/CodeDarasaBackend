@@ -1,6 +1,6 @@
 """Schemas for Course"""
 import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -43,3 +43,13 @@ class CourseOut(CourseBase):
     model_config = {
         "from_attributes": True
     }
+
+
+class CourseListOut(BaseModel):
+    """Schema for outputting a list of Courses."""
+    items: List[CourseOut]
+    total: int
+
+    class Config:
+        """Configuration for CourseListOut schema."""
+        from_attributes = True
